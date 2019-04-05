@@ -1,0 +1,5 @@
+-cp test
+
+--macro nullSafety('peg', Strict)
+
+-main TestAll
