@@ -1,5 +1,6 @@
 -cp test
-
+-lib safety
+-lib exception
 --macro nullSafety('peg', Strict)
 
--main TestAll
+-main test.TestAll
