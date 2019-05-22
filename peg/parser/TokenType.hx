@@ -1,85 +1,16 @@
-package peg;
-
-import haxe.ds.ReadOnlyArray;
-import haxe.Json;
-import sys.io.Process;
-import peg.PegException;
-
-using StringTools;
-
-class PhpLexer {
-	public final tokens:ReadOnlyArray<Token>;
-
-	public function new(phpCode:String) {
-		tokens = tokenize(phpCode);
-	}
-
-	static function tokenize(phpFile:String):Array<Token> {
-		var parserCode = '
-			$$tokens = token_get_all(file_get_contents("$phpFile"), TOKEN_PARSE);
-			$$result = [];
-			foreach($$tokens as $$token) {
-				if(!is_array($$token) || $$token[0] == T_WHITESPACE) {
-					continue;
-				}
-				$$token[0] = token_name($$token[0]);
-				$$result[] = $$token;
-			}
-			echo json_encode($$result);
-		';
-		var result = php(['-r', parserCode]);
-		if(result.exitCode != 0) {
-			throw new PhpException('Failed to run php: ${result.stderr}');
-		}
-
-		var rawTokens:Array<Any> = Json.parse(result.stdout);
-		return rawTokens.map(tokenData -> new Token(tokenData));
-	}
-
-	/**
-	 * Execute php interpreter with given arguments
-	 */
-	static function php(args:Array<String>):{stdout:String, stderr:String, exitCode:Int} {
-		var p = new Process('php', args);
-		var exitCode = p.exitCode(true);
-		var result = {
-			exitCode: exitCode.sure(),
-			stderr: p.stderr.readAll().toString(),
-			stdout: p.stdout.readAll().toString()
-		}
-		p.close();
-		return result;
-	}
-}
-
-abstract Token(Array<Any>) {
-	public var type(get,never):TokenType;
-	public var value(get,never):String;
-	/** At which line of the source php code this token was found */
-	public var line(get,never):Int;
-
-	@:allow(peg.PhpLexer)
-	inline function new(rawToken:Array<Any>) {
-		if(rawToken.length != 3) {
-			throw new PegException('Invalid token data');
-		}
-		this = rawToken;
-	}
-
-	inline function get_type():TokenType {
-		return this[0];
-	}
-
-	inline function get_value():String {
-		return this[1];
-	}
-
-	inline function get_line():Int {
-		return this[2];
-	}
-}
+package peg.parser;
 
 enum abstract TokenType(String) from String {
+	var T_EQUAL = '=';
+	var T_SEMICOLON = ';';
+	var T_COMMA = ',';
+	var T_LEFT_CURLY = '{';
+	var T_RIGHT_CURLY = '}';
+	var T_LEFT_PARENTHESIS = '(';
+	var T_RIGHT_PARENTHESIS = ')';
+	var T_LEFT_SQUARE = '[';
+	var T_RIGHT_SQUARE = ']';
+
 	/** abstract - Class Abstraction */
 	var T_ABSTRACT;
 	/** &= - assignment operators */

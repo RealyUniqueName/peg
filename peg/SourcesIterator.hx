@@ -4,7 +4,7 @@ using haxe.io.Path;
 using sys.FileSystem;
 using StringTools;
 
-class PhpSourcesIterator {
+class SourcesIterator {
 	final sources:Array<String> = [];
 	var index:Int = 0;
 
@@ -16,11 +16,11 @@ class PhpSourcesIterator {
 		return index < sources.length;
 	}
 
-	public inline function next():PhpFile {
+	public inline function next():SourceFile {
 		if(hasNext()) {
-			return new PhpFile(sources[index++]);
+			return new SourceFile(sources[index++]);
 		} else {
-			throw "No more php files";
+			throw new PegException('No more php files');
 		}
 	}
 

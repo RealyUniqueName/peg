@@ -4,3 +4,5 @@
 --macro nullSafety('peg', Strict)
 
 -main test.TestAll
+
+--interp

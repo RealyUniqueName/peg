@@ -1,9 +1,9 @@
 package peg;
 
-import peg.PhpParser;
+import peg.php.PNamespace;
 import haxe.ds.ReadOnlyArray;
 
-class PhpFile {
+class SourceFile {
 	public final path:String;
 
 	public function new(path:String) {
@@ -11,8 +11,8 @@ class PhpFile {
 	}
 
 	public function parse():ReadOnlyArray<PNamespace> {
-		var lexer = new PhpLexer(path);
-		var parser = new PhpParser(lexer.tokens);
+		var lexer = new Lexer(path);
+		var parser = new Parser(lexer.tokens);
 		return parser.parse();
 	}
 }
