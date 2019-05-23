@@ -48,7 +48,7 @@ class Tools {
 				case T_RIGHT_CURLY | T_RIGHT_SQUARE | T_RIGHT_PARENTHESIS:
 					if(token.type == type) break;
 					throw new UnexpectedTokenException(token);
-				case T_LEFT_CURLY:
+				case T_LEFT_CURLY | T_CURLY_OPEN | T_DOLLAR_OPEN_CURLY_BRACES:
 					stream.skipBalancedTo(T_RIGHT_CURLY);
 				case T_LEFT_SQUARE:
 					stream.skipBalancedTo(T_RIGHT_SQUARE);

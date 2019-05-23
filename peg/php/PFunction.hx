@@ -4,6 +4,7 @@ package peg.php;
 class PFunction {
 	public final name:String;
 
+	public var isAbstract(default,null):Bool = false;
 	public var isFinal(default,null):Bool = false;
 	public var isStatic(default,null):Bool = false;
 	public var visibility(default,null):Visibility = VPublic;

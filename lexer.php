@@ -1,5 +1,6 @@
 <?php
 $tokens = token_get_all(file_get_contents($argv[1]), TOKEN_PARSE);
+// $tokens = token_get_all("<?php \"database={\$database}\";", TOKEN_PARSE);
 $result = [];
 $line = 1;
 foreach($tokens as $token) {

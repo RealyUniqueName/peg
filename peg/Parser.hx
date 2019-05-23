@@ -166,6 +166,7 @@ class Parser {
 		for(token in ctx.consumeStoredTokens()) {
 			switch token.type {
 				case T_DOC_COMMENT: fn.doc = token.value;
+				case T_ABSTRACT: fn.isAbstract = true;
 				case T_FINAL: fn.isFinal = true;
 				case T_PUBLIC: fn.visibility = VPublic;
 				case T_PROTECTED: fn.visibility = VProtected;
