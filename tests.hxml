@@ -1,8 +1,10 @@
 -cp test
 -lib safety
 -lib exception
+-D analyzer-optimize
 --macro nullSafety('peg', Strict)
 
 -main test.TestAll
 
 --interp
+# -php bin/php

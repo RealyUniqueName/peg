@@ -14,7 +14,11 @@ class TestAll {
 				}
 
 				for (cls in namespace.classes) {
-					Sys.println('  class ${cls.name}');
+					var kwd = cls.isInterface ? 'interface' : 'class';
+					Sys.println('  $kwd ${cls.name} extends ${cls.parent} implements ${cls.interfaces.join(', ')}');
+					for (c in cls.constants) {
+						Sys.println('    const ${c.name}');
+					}
 					for (v in cls.vars) {
 						Sys.println('    var ${v.name}');
 					}

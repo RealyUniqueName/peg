@@ -3,15 +3,21 @@ package peg.parser;
 using peg.parser.Tools;
 
 class Tools {
-	static public inline function expect(stream:TokenStream, type:TokenType) {
+	static public inline function expect(stream:TokenStream, type:TokenType):Token {
 		var token = stream.next();
 		if(token.type != type) {
 			throw new UnexpectedTokenException(token);
 		}
+		return token;
 	}
 
-	static public inline function skipTo(stream:TokenStream, tokenType:TokenType) {
-		while(stream.next().type != tokenType) {}
+	static public function skipTo(stream:TokenStream, types:TokenTypeSet):Token {
+		for (token in stream) {
+			if(types.contains(token.type)) {
+				return token;
+			}
+		}
+		throw throw new PegException('Unexpected end of file');
 	}
 
 	static public function skipBalancedTo(stream:TokenStream, type:TokenType) {

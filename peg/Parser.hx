@@ -27,10 +27,10 @@ class Parser {
 					ctx.stream.skipTo(T_CLOSE_TAG);
 				//namespace "some\\pack";
 				case T_NAMESPACE:
-					ctx.pushNamespace(new PNamespace(parseNamespace(ctx)));
+					ctx.pushNamespace(new PNamespace(parseTypePath(ctx)));
 				//use "some\\Class"
 				case T_USE:
-					ctx.getNamespace().addUse(parseNamespace(ctx));
+					ctx.getNamespace().addUse(parseTypePath(ctx));
 				//doc block
 				case T_DOC_COMMENT:
 					ctx.storeToken(token);
@@ -40,6 +40,11 @@ class Parser {
 				//class MyClass {}
 				case T_CLASS:
 					ctx.getNamespace().addClass(parseClass(ctx));
+				//interface IMyInterface {}
+				case T_INTERFACE:
+					var i = parseClass(ctx);
+					i.isInterface = true;
+					ctx.getNamespace().addClass(i);
 				case T_SEMICOLON:
 				case _:
 					throw new UnexpectedTokenException(token);
@@ -48,7 +53,7 @@ class Parser {
 		return ctx.namespaces;
 	}
 
-	function parseNamespace(ctx:Context):String {
+	function parseTypePath(ctx:Context):String {
 		var name = '';
 		for(token in ctx.stream) {
 			switch token.type {
@@ -60,6 +65,16 @@ class Parser {
 			}
 		}
 		return name;
+	}
+
+	function parseType(ctx:Context):PType {
+		var token = ctx.stream.next();
+		return switch token.type {
+			case T_STRING | T_NS_SEPARATOR: TClass(parseTypePath(ctx));
+			case T_ARRAY: TArray;
+			case T_CALLABLE: TCallable;
+			case _: throw new UnexpectedTokenException(token);
+		}
 	}
 
 	function parseClass(ctx:Context):PClass {
@@ -83,6 +98,8 @@ class Parser {
 		for (token in ctx.stream) {
 			switch token.type {
 				case T_LEFT_CURLY: break;
+				case T_EXTENDS: cls.parent = parseTypePath(ctx);
+				case T_IMPLEMENTS: parseInterfaces(ctx, cls);
 				case _: throw new UnexpectedTokenException(token);
 			}
 		}
@@ -98,12 +115,29 @@ class Parser {
 					cls.addVar(parseVar(ctx, token.value));
 				case T_RIGHT_CURLY:
 					break;
+				case T_CONST:
+					cls.addConst(parseConst(ctx));
 				case _:
 					throw new UnexpectedTokenException(token);
 			}
 		}
 
 		return cls;
+	}
+
+	function parseInterfaces(ctx:Context, cls:PClass) {
+		cls.addInterface(parseTypePath(ctx));
+		for (token in ctx.stream) {
+			switch token.type {
+				case T_COMMA:
+					cls.addInterface(parseTypePath(ctx));
+				case T_LEFT_CURLY:
+					ctx.stream.back();
+					break;
+				case _:
+					throw new UnexpectedTokenException(token);
+			}
+		}
 	}
 
 	function parseFunction(ctx:Context):PFunction {
@@ -130,8 +164,18 @@ class Parser {
 		parseArguments(ctx, fn);
 
 		//body
-		ctx.stream.expect(T_LEFT_CURLY);
-		ctx.stream.skipBalancedTo(T_RIGHT_CURLY);
+		for (token in ctx.stream) {
+			switch token.type {
+				//abstract method - no body
+				case T_SEMICOLON:
+					break;
+				case T_LEFT_CURLY:
+					ctx.stream.skipBalancedTo(T_RIGHT_CURLY);
+					break;
+				case _:
+					throw new UnexpectedTokenException(token);
+			}
+		}
 
 		return fn;
 	}
@@ -140,12 +184,42 @@ class Parser {
 		ctx.stream.expect(T_LEFT_PARENTHESIS);
 		for (token in ctx.stream) {
 			switch token.type {
-				case T_RIGHT_PARENTHESIS: return;
-				case T_LEFT_CURLY: ctx.stream.back(); return;
-				case T_VARIABLE: fn.addArg(parseVar(ctx, token.value));
+				//end of args
+				case T_RIGHT_PARENTHESIS:
+					return;
+				//$argName
+				case T_VARIABLE:
+					fn.addArg(parseVar(ctx, token.value));
+				//SomeType $arg
+				case _:
+					ctx.stream.back();
+					var type = parseType(ctx);
+					var name = ctx.stream.expect(T_VARIABLE);
+					var v = parseVar(ctx, name.value);
+					v.type = type;
+			}
+		}
+	}
+
+	function parseConst(ctx:Context):PConst {
+		var c = new PConst(ctx.stream.expect(T_STRING).value);
+
+		for(token in ctx.consumeStoredTokens()) {
+			switch token.type {
+				case T_DOC_COMMENT: c.doc = token.value;
+				case T_PUBLIC: c.visibility = VPublic;
+				case T_PROTECTED: c.visibility = VProtected;
+				case T_PRIVATE: c.visibility = VPrivate;
 				case _: throw new UnexpectedTokenException(token);
 			}
 		}
+
+		ctx.stream.expect(T_EQUAL);
+
+		//TODO: parse value to figure out constant type
+		ctx.stream.skipTo(T_SEMICOLON);
+
+		return c;
 	}
 
 	function parseVar(ctx:Context, name:String):PVar {
@@ -169,7 +243,14 @@ class Parser {
 				//next argument
 				case T_COMMA: break;
 				//end of arguments list
-				case T_RIGHT_PARENTHESIS: ctx.stream.back(); break;
+				case T_RIGHT_PARENTHESIS:
+					ctx.stream.back();
+					break;
+				//default value
+				case T_EQUAL:
+					//TODO: parse value to figure out var type
+					ctx.stream.skipTo([T_COMMA, T_SEMICOLON, T_RIGHT_PARENTHESIS]);
+					ctx.stream.back();
 				case _: throw new UnexpectedTokenException(token);
 			}
 		}

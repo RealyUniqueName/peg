@@ -1,3 +1,4 @@
 .haxelib
 .vscode
 vendor
+bin

@@ -1,10 +1,9 @@
 package peg.php;
 
 @:allow(peg.Parser)
-class PVar {
+class PConst {
 	public final name:String;
 
-	public var isStatic(default,null):Bool = false;
 	public var visibility(default,null):Visibility = VPublic;
 	public var doc(default,null):String = '';
 	public var type(default,null):PType = TMixed;

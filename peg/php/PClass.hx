@@ -4,27 +4,44 @@ package peg.php;
 class PClass {
 	public final name:String;
 
+	public var isInterface(default,null):Bool = false;
 	public var isFinal(default,null):Bool = false;
 	public var doc(default,null):String = '';
+	public var parent(default,null):Null<String>;
 
-	public var functions(get,never):ReadOnlyArray<PFunction>;
+	public var interfaces(get,never):ReadOnlyArray<String>;
+	public var constants(get,never):ReadOnlyArray<PConst>;
 	public var vars(get,never):ReadOnlyArray<PVar>;
+	public var functions(get,never):ReadOnlyArray<PFunction>;
 
-	final _functions:Array<PFunction> = [];
+	final _interfaces:Array<String> = [];
+	final _constants:Array<PConst> = [];
 	final _vars:Array<PVar> = [];
+	final _functions:Array<PFunction> = [];
 
 	function new(name:String) {
 		this.name = name;
 	}
 
-	function addFunction(fn:PFunction) {
-		_functions.push(fn);
+	function addInterface(i:String) {
+		_interfaces.push(i);
+	}
+
+	function addConst(c:PConst) {
+		_constants.push(c);
 	}
 
 	function addVar(v:PVar) {
 		_vars.push(v);
 	}
 
-	inline function get_functions() return _functions;
+	function addFunction(fn:PFunction) {
+		_functions.push(fn);
+	}
+
+
+	inline function get_interfaces() return _interfaces;
+	inline function get_constants() return _constants;
 	inline function get_vars() return _vars;
+	inline function get_functions() return _functions;
 }
