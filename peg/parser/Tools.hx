@@ -3,7 +3,7 @@ package peg.parser;
 using peg.parser.Tools;
 
 class Tools {
-	static public inline function expect(stream:TokenStream, type:TokenType):Token {
+	static public function expect(stream:TokenStream, type:TokenType):Token {
 		var token = stream.next();
 		if(token.type != type) {
 			throw new UnexpectedTokenException(token);
@@ -18,6 +18,19 @@ class Tools {
 			}
 		}
 		throw throw new PegException('Unexpected end of file');
+	}
+
+	static public function skipValue(stream:TokenStream) {
+		var token = stream.next();
+		switch token.type {
+			case T_LEFT_SQUARE:
+				skipBalancedTo(stream, T_RIGHT_SQUARE);
+			case T_LEFT_PARENTHESIS:
+				skipBalancedTo(stream, T_RIGHT_PARENTHESIS);
+			case _:
+				skipTo(stream, [T_COMMA, T_SEMICOLON, T_RIGHT_PARENTHESIS]);
+				stream.back();
+		}
 	}
 
 	static public function skipBalancedTo(stream:TokenStream, type:TokenType) {

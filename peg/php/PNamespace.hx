@@ -3,18 +3,18 @@ package peg.php;
 class PNamespace {
 	public final name:String;
 
-	public var uses(get,never):ReadOnlyArray<String>;
+	public var uses(get,never):ReadOnlyArray<PUse>;
 	public var classes(get,never):ReadOnlyArray<PClass>;
 
-	final _uses:Array<String> = [];
+	final _uses:Array<PUse> = [];
 	final _classes:Array<PClass> = [];
 
 	public function new(name:String) {
 		this.name = name;
 	}
 
-	public function addUse(namespace:String) {
-		_uses.push(namespace);
+	public function addUse(type:String, alias:String) {
+		_uses.push({type:type, alias:alias});
 	}
 
 	public function addClass(cls:PClass) {

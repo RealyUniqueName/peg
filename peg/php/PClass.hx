@@ -6,6 +6,7 @@ class PClass {
 
 	public var isInterface(default,null):Bool = false;
 	public var isFinal(default,null):Bool = false;
+	public var isAbstract(default,null):Bool = true;
 	public var doc(default,null):String = '';
 	public var parent(default,null):Null<String>;
 

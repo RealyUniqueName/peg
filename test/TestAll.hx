@@ -3,14 +3,15 @@ package test;
 class TestAll {
 	static public function main() {
 
-		for (file in new peg.SourcesIterator('vendor/zendframework/zend-json')) {
+		for (file in new peg.SourcesIterator('vendor/zendframework/')) {
 			Sys.println('Parsing ${file.path}');
 
 			for (namespace in file.parse()) {
 				Sys.println('namespace: ${namespace.name}');
 
-				for (s in namespace.uses) {
-					Sys.println('  use $s');
+				for (u in namespace.uses) {
+					var alias = u.alias == '' ? '' : 'as ${u.alias}';
+					Sys.println('  use ${u.type}$alias');
 				}
 
 				for (cls in namespace.classes) {

@@ -28,29 +28,40 @@ class Parser {
 				//namespace "some\\pack";
 				case T_NAMESPACE:
 					ctx.pushNamespace(new PNamespace(parseTypePath(ctx)));
+					ctx.stream.expect(T_SEMICOLON);
 				//use "some\\Class"
 				case T_USE:
-					ctx.getNamespace().addUse(parseTypePath(ctx));
-				//doc block
-				case T_DOC_COMMENT:
-					ctx.storeToken(token);
-				//final
-				case T_FINAL:
+					parseUse(ctx);
+				//doc block, final, abstract
+				case T_DOC_COMMENT | T_FINAL | T_ABSTRACT:
 					ctx.storeToken(token);
 				//class MyClass {}
 				case T_CLASS:
 					ctx.getNamespace().addClass(parseClass(ctx));
 				//interface IMyInterface {}
 				case T_INTERFACE:
-					var i = parseClass(ctx);
-					i.isInterface = true;
-					ctx.getNamespace().addClass(i);
-				case T_SEMICOLON:
+					ctx.storeToken(token);
+					ctx.getNamespace().addClass(parseClass(ctx));
+				// case T_SEMICOLON:
 				case _:
 					throw new UnexpectedTokenException(token);
 			}
 		}
 		return ctx.namespaces;
+	}
+
+	function parseUse(ctx:Context) {
+		var type = parseTypePath(ctx);
+		var token = ctx.stream.next();
+		switch token.type {
+			case T_AS:
+				ctx.getNamespace().addUse(type, parseTypePath(ctx));
+				ctx.stream.expect(T_SEMICOLON);
+			case T_SEMICOLON:
+				ctx.getNamespace().addUse(type, '');
+			case _:
+				throw new UnexpectedTokenException(token);
+		}
 	}
 
 	function parseTypePath(ctx:Context):String {
@@ -88,8 +99,10 @@ class Parser {
 
 		for(token in ctx.consumeStoredTokens()) {
 			switch token.type {
+				case T_INTERFACE: cls.isInterface = true;
 				case T_DOC_COMMENT: cls.doc = token.value;
 				case T_FINAL: cls.isFinal = true;
+				case T_ABSTRACT: cls.isAbstract = true;
 				case _: throw new UnexpectedTokenException(token);
 			}
 		}
@@ -98,6 +111,7 @@ class Parser {
 		for (token in ctx.stream) {
 			switch token.type {
 				case T_LEFT_CURLY: break;
+				case T_EXTENDS if(cls.isInterface): parseInterfaces(ctx, cls);
 				case T_EXTENDS: cls.parent = parseTypePath(ctx);
 				case T_IMPLEMENTS: parseInterfaces(ctx, cls);
 				case _: throw new UnexpectedTokenException(token);
@@ -107,7 +121,7 @@ class Parser {
 		//class body
 		for (token in ctx.stream) {
 			switch token.type {
-				case T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT:
+				case T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT | T_ABSTRACT:
 					ctx.storeToken(token);
 				case T_FUNCTION:
 					cls.addFunction(parseFunction(ctx));
@@ -217,7 +231,8 @@ class Parser {
 		ctx.stream.expect(T_EQUAL);
 
 		//TODO: parse value to figure out constant type
-		ctx.stream.skipTo(T_SEMICOLON);
+		ctx.stream.skipValue();
+		ctx.stream.expect(T_SEMICOLON);
 
 		return c;
 	}
@@ -239,9 +254,11 @@ class Parser {
 		for (token in ctx.stream) {
 			switch token.type {
 				//end of var declaration
-				case T_SEMICOLON: break;
-				//next argument
-				case T_COMMA: break;
+				case T_SEMICOLON:
+					break;
+				//end of argument
+				case T_COMMA:
+					break;
 				//end of arguments list
 				case T_RIGHT_PARENTHESIS:
 					ctx.stream.back();
@@ -249,9 +266,9 @@ class Parser {
 				//default value
 				case T_EQUAL:
 					//TODO: parse value to figure out var type
-					ctx.stream.skipTo([T_COMMA, T_SEMICOLON, T_RIGHT_PARENTHESIS]);
-					ctx.stream.back();
-				case _: throw new UnexpectedTokenException(token);
+					ctx.stream.skipValue();
+				case _:
+					throw new UnexpectedTokenException(token);
 			}
 		}
 
