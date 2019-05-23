@@ -4,6 +4,7 @@ package peg.php;
 class PClass {
 	public final name:String;
 
+	public var isTrait(default,null):Bool = false;
 	public var isInterface(default,null):Bool = false;
 	public var isFinal(default,null):Bool = false;
 	public var isAbstract(default,null):Bool = true;

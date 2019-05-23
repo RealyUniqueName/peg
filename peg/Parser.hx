@@ -42,6 +42,10 @@ class Parser {
 				case T_INTERFACE:
 					ctx.storeToken(token);
 					ctx.getNamespace().addClass(parseClass(ctx));
+				//trait IMyInterface {}
+				case T_TRAIT:
+					ctx.storeToken(token);
+					ctx.getNamespace().addClass(parseClass(ctx));
 				// case T_SEMICOLON:
 				case _:
 					throw new UnexpectedTokenException(token);
@@ -100,6 +104,7 @@ class Parser {
 		for(token in ctx.consumeStoredTokens()) {
 			switch token.type {
 				case T_INTERFACE: cls.isInterface = true;
+				case T_TRAIT: cls.isTrait = true;
 				case T_DOC_COMMENT: cls.doc = token.value;
 				case T_FINAL: cls.isFinal = true;
 				case T_ABSTRACT: cls.isAbstract = true;

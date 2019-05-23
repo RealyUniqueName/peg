@@ -6,7 +6,7 @@ $line = 1;
 foreach($tokens as $token) {
 	if(is_array($token)) {
 		$line = $token[2];
-		if($token[0] == T_WHITESPACE) {
+		if($token[0] == T_WHITESPACE || $token[0] == T_COMMENT) {
 			$line += substr_count($token[1], "\n");
 			continue;
 		}
