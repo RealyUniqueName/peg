@@ -13,8 +13,8 @@ class PNamespace {
 		this.name = name;
 	}
 
-	public function addUse(type:String, alias:String) {
-		_uses.push({type:type, alias:alias});
+	public function addUse(use:PUse) {
+		_uses.push(use);
 	}
 
 	public function addClass(cls:PClass) {

@@ -31,7 +31,7 @@ class Parser {
 					ctx.stream.expect(T_SEMICOLON);
 				//use "some\\Class"
 				case T_USE:
-					parseUse(ctx);
+					ctx.getNamespace().addUse(parseUse(ctx));
 				//doc block, final, abstract
 				case T_DOC_COMMENT | T_FINAL | T_ABSTRACT:
 					ctx.storeToken(token);
@@ -48,24 +48,27 @@ class Parser {
 					ctx.getNamespace().addClass(parseClass(ctx));
 				// case T_SEMICOLON:
 				case _:
-					throw new UnexpectedTokenException(token);
+					// TODO: handle namespace-level functions
+					// TODO: handle `class_alias()` ?
 			}
 		}
 		return ctx.namespaces;
 	}
 
-	function parseUse(ctx:Context) {
+	function parseUse(ctx:Context):PUse {
 		var type = parseTypePath(ctx);
 		var token = ctx.stream.next();
-		switch token.type {
+		var alias = switch token.type {
 			case T_AS:
-				ctx.getNamespace().addUse(type, parseTypePath(ctx));
+				var alias = parseTypePath(ctx);
 				ctx.stream.expect(T_SEMICOLON);
+				alias;
 			case T_SEMICOLON:
-				ctx.getNamespace().addUse(type, '');
+				'';
 			case _:
 				throw new UnexpectedTokenException(token);
 		}
+		return {type:type, alias:alias};
 	}
 
 	function parseTypePath(ctx:Context):String {
@@ -126,6 +129,8 @@ class Parser {
 		//class body
 		for (token in ctx.stream) {
 			switch token.type {
+				case T_USE:
+					cls.addUse(parseUse(ctx));
 				case T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT | T_ABSTRACT:
 					ctx.storeToken(token);
 				case T_FUNCTION:
