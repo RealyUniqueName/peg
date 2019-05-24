@@ -9,4 +9,5 @@ enum PType {
 	TCallable;
 	TMixed;
 	TClass(name:String);
+	TOr(types:ReadOnlyArray<PType>);
 }

@@ -9,6 +9,7 @@ class PFunction {
 	public var isStatic(default,null):Bool = false;
 	public var visibility(default,null):Visibility = VPublic;
 	public var doc(default,null):String = '';
+	public var returnType(default,null):PType = TMixed;
 
 	public var args(get,never):ReadOnlyArray<PVar>;
 

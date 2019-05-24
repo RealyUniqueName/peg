@@ -31,7 +31,7 @@ class Parser {
 					ctx.stream.expect(T_SEMICOLON);
 				//use "some\\Class"
 				case T_USE:
-					ctx.getNamespace().addUse(parseUse(ctx));
+					ctx.getNamespace().addUses(parseUse(ctx));
 				//doc block, final, abstract
 				case T_DOC_COMMENT | T_FINAL | T_ABSTRACT:
 					ctx.storeToken(token);
@@ -55,20 +55,38 @@ class Parser {
 		return ctx.namespaces;
 	}
 
-	function parseUse(ctx:Context):PUse {
-		var type = parseTypePath(ctx);
-		var token = ctx.stream.next();
-		var alias = switch token.type {
-			case T_AS:
-				var alias = parseTypePath(ctx);
-				ctx.stream.expect(T_SEMICOLON);
-				alias;
-			case T_SEMICOLON:
-				'';
-			case _:
-				throw new UnexpectedTokenException(token);
+	function parseUse(ctx:Context):Array<PUse> {
+		function parseAlias():Null<String> {
+			var token = ctx.stream.next();
+			return switch token.type {
+				case T_AS:
+					parseTypePath(ctx);
+				case T_SEMICOLON:
+					ctx.stream.back();
+					null;
+				case _: throw new UnexpectedTokenException(token);
+			}
 		}
-		return {type:type, alias:alias};
+		var uses = [];
+		for (token in ctx.stream) {
+			switch token.type {
+				case T_STRING | T_NS_SEPARATOR:
+					ctx.stream.back();
+					var type = parseTypePath(ctx);
+					var alias = parseAlias();
+					uses.push(PUse.UClass(type, alias));
+				case T_FUNCTION:
+					var fnPath = parseTypePath(ctx);
+					var alias = parseAlias();
+					uses.push(UFunction(fnPath, alias));
+				case T_CONST:
+					var constPath = parseTypePath(ctx);
+					uses.push(UConst(constPath));
+				case T_SEMICOLON: break;
+				case _: throw new UnexpectedTokenException(token);
+			}
+		}
+		return uses;
 	}
 
 	function parseTypePath(ctx:Context):String {
@@ -88,10 +106,16 @@ class Parser {
 	function parseType(ctx:Context):PType {
 		var token = ctx.stream.next();
 		return switch token.type {
-			case T_STRING | T_NS_SEPARATOR: TClass(parseTypePath(ctx));
 			case T_ARRAY: TArray;
 			case T_CALLABLE: TCallable;
-			case _: throw new UnexpectedTokenException(token);
+			case T_STRING | T_NS_SEPARATOR:
+				ctx.stream.back();
+				switch(parseTypePath(ctx)) {
+					case 'string': TString;
+					case path: TClass(path);
+				}
+			case _:
+				throw new UnexpectedTokenException(token);
 		}
 	}
 
@@ -130,8 +154,8 @@ class Parser {
 		for (token in ctx.stream) {
 			switch token.type {
 				case T_USE:
-					cls.addUse(parseUse(ctx));
-				case T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT | T_ABSTRACT:
+					cls.addUses(parseUse(ctx));
+				case T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT | T_ABSTRACT | T_FINAL:
 					ctx.storeToken(token);
 				case T_FUNCTION:
 					cls.addFunction(parseFunction(ctx));
@@ -191,14 +215,16 @@ class Parser {
 		//body
 		for (token in ctx.stream) {
 			switch token.type {
-				//abstract method - no body
-				case T_SEMICOLON:
-					break;
 				case T_LEFT_CURLY:
 					ctx.stream.skipBalancedTo(T_RIGHT_CURLY);
 					break;
+				//abstract method - no body
+				case T_SEMICOLON:
+					break;
+				//return type
 				case _:
-					throw new UnexpectedTokenException(token);
+					ctx.stream.back();
+					fn.returnType = parseType(ctx);
 			}
 		}
 

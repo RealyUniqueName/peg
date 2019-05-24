@@ -31,8 +31,10 @@ class PClass {
 		_interfaces.push(i);
 	}
 
-	public function addUse(use:PUse) {
-		_uses.push(use);
+	public function addUses(uses:Array<PUse>) {
+		for (u in uses) {
+			_uses.push(u);
+		}
 	}
 
 	function addConst(c:PConst) {

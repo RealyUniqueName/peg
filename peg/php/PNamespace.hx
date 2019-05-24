@@ -13,8 +13,10 @@ class PNamespace {
 		this.name = name;
 	}
 
-	public function addUse(use:PUse) {
-		_uses.push(use);
+	public function addUses(uses:Array<PUse>) {
+		for (u in uses) {
+			_uses.push(u);
+		}
 	}
 
 	public function addClass(cls:PClass) {
