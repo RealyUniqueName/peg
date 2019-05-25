@@ -6,5 +6,11 @@
 
 -main test.TestAll
 
---interp
-# -php bin/php
+# --interp
+
+-php bin/php
+--cmd php bin/php/index.php
+
+# -lib hxnodejs
+#-D js-es=6
+# -js bin/test.js

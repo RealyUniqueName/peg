@@ -1,7 +1,6 @@
 package peg;
 
 import haxe.io.Eof;
-import haxe.io.Input;
 import haxe.Exception;
 import haxe.io.Error;
 import haxe.io.BytesBuffer;
@@ -16,7 +15,7 @@ class Lexer {
 	}
 
 	static function tokenize(phpFile:String):Array<Token> {
-		var result = php(['lexer.php', phpFile]);
+		var result = tokenizeThroughPhp(phpFile);
 		if(result.exitCode != 0) {
 			throw new PhpException('Failed to run php: ${result.stderr}');
 		}
@@ -29,32 +28,45 @@ class Lexer {
 	/**
 	 * Execute php interpreter with given arguments
 	 */
-	static function php(args:Array<String>):{stdout:String, stderr:String, exitCode:Int} {
-		inline function read(io:Input, buf:BytesBuffer) {
-
-		}
-
-		var p = new Process('/home/alex/.phpenv/shims/php', args);
-		var stdout = new BytesBuffer();
-		while(true) {
-			try {
-				stdout.addByte(p.stdout.readByte());
-			} catch(e:Error) {
-				switch e {
-					case Blocked:
-					case e: throw Exception.wrapWithStack(e);
-				}
-			} catch(e:Eof) {
-				break;
+	static function tokenizeThroughPhp(phpSourceFile:String, lexerPhpScript:String = 'lexer.php'):{stdout:String, stderr:Null<String>, exitCode:Int} {
+		var result;
+		#if nodejs
+			var p = js.node.ChildProcess.spawnSync('php', [lexerPhpScript, phpSourceFile]);
+			result = {
+				stdout: p.stdout,
+				stderr: p.stderr,
+				exitCode: p.status
 			}
-		}
-		var exitCode = p.exitCode(true);
-		var result = {
-			exitCode: exitCode.sure(),
-			stderr: p.stderr.readAll().toString(),
-			stdout: stdout.getBytes().toString()
-		}
-		p.close();
+		#elseif php
+			php.Global.require_once(lexerPhpScript);
+			return {
+				exitCode: 0,
+				stderr: null,
+				stdout: php.Syntax.code('tokenize({0})', phpSourceFile)
+			}
+		#else
+			var p = new Process('/home/alex/.phpenv/shims/php', [lexerPhpScript, phpSourceFile]);
+			var stdout = new BytesBuffer();
+			while(true) {
+				try {
+					stdout.addByte(p.stdout.readByte());
+				} catch(e:Error) {
+					switch e {
+						case Blocked:
+						case e: throw Exception.wrapWithStack(e);
+					}
+				} catch(e:Eof) {
+					break;
+				}
+			}
+			var exitCode = p.exitCode(true).sure();
+			result = {
+				exitCode: exitCode,
+				stderr: (exitCode == 0 ? null : p.stderr.readAll().toString()),
+				stdout: stdout.getBytes().toString()
+			}
+			p.close();
+		#end
 		return result;
 	}
 }
