@@ -49,7 +49,6 @@ class PClass {
 		_functions.push(fn);
 	}
 
-
 	inline function get_interfaces() return _interfaces;
 	inline function get_uses() return _uses;
 	inline function get_constants() return _constants;

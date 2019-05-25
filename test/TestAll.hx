@@ -3,7 +3,7 @@ package test;
 class TestAll {
 	static public function main() {
 
-		for (file in new peg.SourcesIterator('vendor/zendframework/zend-diactoros')) {
+		for (file in new peg.SourcesIterator('vendor/zendframework/')) {
 			Sys.println('Parsing ${file.path}');
 
 			for (namespace in file.parse()) {

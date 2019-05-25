@@ -1,6 +1,7 @@
 package peg.parser;
 
 using peg.parser.Tools;
+using StringTools;
 
 class Tools {
 	static public function expect(stream:TokenStream, type:TokenType):Token {
@@ -39,10 +40,6 @@ class Tools {
 			case _: throw new PegException('Invalid token type for skipBalancedTo: $type');
 		}
 
-		inline function validateEnd(token:Token) {
-
-		}
-
 		for (token in stream) {
 			switch token.type {
 				case T_RIGHT_CURLY | T_RIGHT_SQUARE | T_RIGHT_PARENTHESIS:
@@ -54,6 +51,8 @@ class Tools {
 					stream.skipBalancedTo(T_RIGHT_SQUARE);
 				case T_LEFT_PARENTHESIS:
 					stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
+				case T_START_HEREDOC:
+					stream.skipTo(T_END_HEREDOC);
 				case _:
 			}
 		}

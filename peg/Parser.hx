@@ -46,10 +46,28 @@ class Parser {
 				case T_TRAIT:
 					ctx.storeToken(token);
 					ctx.getNamespace().addClass(parseClass(ctx));
-				// case T_SEMICOLON:
+				// namespace-level function
+				case T_FUNCTION:
+					var token = ctx.stream.next();
+					switch token.type {
+						//ordinary "named" function
+						case T_STRING:
+							ctx.stream.back();
+							ctx.getNamespace().addFunction(parseFunction(ctx));
+						//function () use () { - anonymous function
+						case T_LEFT_PARENTHESIS:
+							ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
+							//Skip `use` if exists. Otherwise skips `{`, but it's ok at namespace level. We were about to skip it anyway.
+							ctx.stream.next();
+						case _: throw new UnexpectedTokenException(token);
+					}
+				// <<< SOME
+				case T_START_HEREDOC:
+					ctx.stream.skipTo(T_END_HEREDOC);
 				case _:
-					// TODO: handle namespace-level functions
+					// TODO: handle `define('CONST_NAME', 'const value')`
 					// TODO: handle `class_alias()` ?
+					// throw new UnexpectedTokenException(token);
 			}
 		}
 		return ctx.namespaces;
