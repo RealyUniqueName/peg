@@ -6,7 +6,7 @@ class TestAll {
 	static public function main() {
 		var cnt = 0;
 		Sys.print('');
-		for (file in new peg.SourcesIterator('vendor/twig')) {
+		for (file in new peg.SourcesIterator('vendor')) {
 			Sys.print('\rParsing files: ${cnt++}');
 
 			var namespaces = try {
