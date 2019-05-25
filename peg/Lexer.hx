@@ -20,7 +20,11 @@ class Lexer {
 			throw new PhpException('Failed to run php: ${result.stderr}');
 		}
 
-		var rawTokens:Array<Any> = Json.parse(result.stdout);
+		var rawTokens:Array<Any> = try {
+			Json.parse(result.stdout);
+		} catch(e:Dynamic) {
+			throw new PegException('Failed to parse json: ${result.stdout}', Exception.wrapWithStack(e));
+		}
 		// trace(rawTokens.map(Std.string).join('\n'));
 		return rawTokens.map(tokenData -> new Token(tokenData));
 	}
@@ -39,10 +43,17 @@ class Lexer {
 			}
 		#elseif php
 			php.Global.require_once(lexerPhpScript);
+			var stderr:Null<String> = null;
+			var stdout = try {
+				php.Syntax.code('tokenize({0})', phpSourceFile);
+			} catch(e:php.Throwable) {
+				stderr = e.getMessage();
+				'';
+			}
 			return {
-				exitCode: 0,
-				stderr: null,
-				stdout: php.Syntax.code('tokenize({0})', phpSourceFile)
+				exitCode: stderr == null ? 0 : 1,
+				stderr: stderr,
+				stdout: stdout
 			}
 		#else
 			var p = new Process('php', [lexerPhpScript, phpSourceFile]);

@@ -332,6 +332,12 @@ class Parser {
 	}
 
 	function parseArguments(ctx:Context, fn:PFunction) {
+		function parseRestArg():PVar {
+			var v = parseVar(ctx, ctx.stream.expect(T_VARIABLE).value);
+			v.isRestArg = true;
+			return v;
+		}
+
 		ctx.stream.expect(T_LEFT_PARENTHESIS);
 		for (token in ctx.stream) {
 			switch token.type {
@@ -341,17 +347,21 @@ class Parser {
 				//$argName
 				case T_VARIABLE:
 					fn.addArg(parseVar(ctx, token.value));
+				//...$argName
 				case T_ELLIPSIS:
-					var v = parseVar(ctx, ctx.stream.expect(T_VARIABLE).value);
-					v.isRestArg = true;
-					fn.addArg(v);
+					fn.addArg(parseRestArg());
 				//SomeType $arg
 				case _:
 					ctx.stream.back();
 					var type = parseType(ctx);
-					var name = ctx.stream.expect(T_VARIABLE);
-					var v = parseVar(ctx, name.value);
+					var token = ctx.stream.next();
+					var v = switch token.type {
+						case T_ELLIPSIS: parseRestArg();
+						case T_VARIABLE: parseVar(ctx, token.value);
+						case _: throw new UnexpectedTokenException(token);
+					}
 					v.type = type;
+					fn.addArg(v);
 			}
 		}
 	}

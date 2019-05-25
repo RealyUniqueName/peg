@@ -25,7 +25,11 @@ function tokenize($file) {
 		// echo json_encode([$token[0],$token[2]])."\n";
 		$result[] = $token;
 	}
-	return json_encode($result);
+	$json = json_encode($result);
+	if(json_last_error() !== JSON_ERROR_NONE) {
+		throw new \Exception(json_last_error_msg());
+	}
+	return $json;
 }
 
 //if executed as a standalone script

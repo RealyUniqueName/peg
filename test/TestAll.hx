@@ -1,12 +1,28 @@
 package test;
 
+import peg.PegException;
+
 class TestAll {
 	static public function main() {
-
+		var cnt = 0;
+		Sys.print('');
 		for (file in new peg.SourcesIterator('vendor/symfony')) {
-			Sys.println('Parsing ${file.path}');
+			Sys.print('\rParsing files: ${cnt++}');
 
-			for (namespace in file.parse()) {
+			var namespaces = try {
+				file.parse();
+			} catch(e:ParserException) {
+				Sys.println('\n${file.path} FAIL >>');
+				Sys.println(e.toString());
+				Sys.exit(1);
+				return;
+			} catch(e:PegException) {
+				Sys.println('\n${file.path} FAIL >>');
+				Sys.println(e.toString());
+				Sys.println('<< FAIL, skipped');
+				continue;
+			}
+			for (namespace in namespaces) {
 				// Sys.println('namespace: ${namespace.name}');
 
 				// for (u in namespace.uses) {
@@ -27,6 +43,8 @@ class TestAll {
 				// 	}
 				// }
 			}
+			// Sys.println('Ok');
 		}
+		Sys.println('\nAll done!');
 	}
 }

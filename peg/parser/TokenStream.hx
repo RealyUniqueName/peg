@@ -16,7 +16,7 @@ class TokenStream {
 
 	public inline function next():Token {
 		if(depleted) {
-			throw new PegException('Unexpected end of file');
+			throw new ParserException('Unexpected end of file');
 		}
 		return tokens[index++];
 	}
@@ -26,7 +26,7 @@ class TokenStream {
 	 */
 	public function back() {
 		if(index == 0) {
-			throw new PegException('Cannot go back');
+			throw new ParserException('Cannot go back');
 		}
 		index--;
 	}

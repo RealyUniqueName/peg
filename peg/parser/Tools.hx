@@ -18,7 +18,7 @@ class Tools {
 				return token;
 			}
 		}
-		throw throw new PegException('Unexpected end of file');
+		throw throw new ParserException('Unexpected end of file');
 	}
 
 	static public function skipValue(stream:TokenStream) {
@@ -40,7 +40,7 @@ class Tools {
 	static public function skipBalancedTo(stream:TokenStream, type:TokenType) {
 		switch type {
 			case T_RIGHT_CURLY | T_RIGHT_SQUARE | T_RIGHT_PARENTHESIS:
-			case _: throw new PegException('Invalid token type for skipBalancedTo: $type');
+			case _: throw new ParserException('Invalid token type for skipBalancedTo: $type');
 		}
 
 		for (token in stream) {
