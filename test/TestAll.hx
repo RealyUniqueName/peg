@@ -6,11 +6,16 @@ class TestAll {
 	static public function main() {
 		var cnt = 0;
 		Sys.print('');
-		for (file in new peg.SourcesIterator('vendor/symfony')) {
+		for (file in new peg.SourcesIterator('vendor/twig')) {
 			Sys.print('\rParsing files: ${cnt++}');
 
 			var namespaces = try {
 				file.parse();
+			} catch(e:UnexpectedTokenException) {
+				Sys.println('\n${file.path}:${e.token.line} FAIL >>');
+				Sys.println(e.toString());
+				Sys.exit(1);
+				return;
 			} catch(e:ParserException) {
 				Sys.println('\n${file.path} FAIL >>');
 				Sys.println(e.toString());

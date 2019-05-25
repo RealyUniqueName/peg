@@ -30,7 +30,11 @@ class Parser {
 				//namespace "some\\pack";
 				case T_NAMESPACE:
 					ctx.pushNamespace(new PNamespace(parseTypePath(ctx)));
-					ctx.stream.expect(T_SEMICOLON);
+					var token = ctx.stream.next();
+					switch token.type {
+						case T_LEFT_CURLY | T_SEMICOLON:
+						case _: throw new UnexpectedTokenException(token);
+					}
 				//use "some\\Class"
 				case T_USE:
 					ctx.getNamespace().addUses(parseUse(ctx));
