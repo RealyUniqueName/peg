@@ -45,7 +45,7 @@ class Lexer {
 				stdout: php.Syntax.code('tokenize({0})', phpSourceFile)
 			}
 		#else
-			var p = new Process('/home/alex/.phpenv/shims/php', [lexerPhpScript, phpSourceFile]);
+			var p = new Process('php', [lexerPhpScript, phpSourceFile]);
 			var stdout = new BytesBuffer();
 			while(true) {
 				try {

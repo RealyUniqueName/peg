@@ -2,6 +2,8 @@ package peg;
 
 import peg.parser.*;
 import peg.php.*;
+import peg.php.PUse;
+import peg.php.Visibility;
 import haxe.ds.ReadOnlyArray;
 
 using peg.parser.Tools;
@@ -64,6 +66,12 @@ class Parser {
 				// <<< SOME
 				case T_START_HEREDOC:
 					ctx.stream.skipTo(T_END_HEREDOC);
+				// maybe `new class {...`?
+				case T_NEW:
+					switch(ctx.stream.next().type) {
+						case T_CLASS: //skip it
+						case _: ctx.stream.back();
+					}
 				case _:
 					// TODO: handle `define('CONST_NAME', 'const value')`
 					// TODO: handle `class_alias()` ?
@@ -73,6 +81,11 @@ class Parser {
 		return ctx.namespaces;
 	}
 
+	/**
+	 * `use` at namespace level
+	 * @param ctx
+	 * @return Array<PUse>
+	 */
 	function parseUse(ctx:Context):Array<PUse> {
 		function parseAlias():Null<String> {
 			var token = ctx.stream.next();
@@ -105,6 +118,75 @@ class Parser {
 			}
 		}
 		return uses;
+	}
+
+	/**
+	 * `use` at class level
+	 * @param ctx
+	 * @return Array<PUse>
+	 */
+	function parseUseTraits(ctx:Context):PUse {
+		function parseMethod():PUse.Method {
+			//don't know yet if it's a method name or a class name
+			var symbol = parseTypePath(ctx);
+			var token = ctx.stream.next();
+			switch token.type {
+				//it was a class name
+				case T_DOUBLE_COLON:
+					var name = ctx.stream.expect(T_STRING).value;
+					return {type:symbol, name:name}
+				//it was a method name
+				case T_AS:
+					ctx.stream.back();
+					return {name:symbol}
+				case _:
+					throw new UnexpectedTokenException(token);
+			}
+		}
+		function parseAlias(method:String):PUse.Alias {
+			var visibility = VPublic;
+			var name = method;
+			for (token in ctx.stream) {
+				switch token.type {
+					case T_PUBLIC: visibility = VPublic;
+					case T_PRIVATE: visibility = VPrivate;
+					case T_PROTECTED: visibility = VProtected;
+					case T_STRING: name = token.value;
+					case T_SEMICOLON: break;
+					case _: throw new UnexpectedTokenException(token);
+				}
+			}
+			return {visibility:visibility, name:name};
+		}
+
+		var traitsPaths = [parseTypePath(ctx)];
+		for (token in ctx.stream) {
+			switch token.type {
+				case T_COMMA: traitsPaths.push(parseTypePath(ctx));
+				case T_SEMICOLON: return UTrait(traitsPaths);
+				//use pack\\MyTrait { method as alias }
+				case T_LEFT_CURLY: break;
+				case _: throw new UnexpectedTokenException(token);
+			}
+		}
+
+		var aliases = [];
+		for (token in ctx.stream) {
+			switch token.type {
+				// `MyType::method as alias` or `method as alias`
+				case T_STRING:
+					ctx.stream.back();
+					var method = parseMethod();
+					ctx.stream.expect(T_AS);
+					aliases.push({method:method, alias:parseAlias(method.name)});
+				case T_RIGHT_CURLY:
+					break;
+				case T_SEMICOLON:
+				case _:
+					throw new UnexpectedTokenException(token);
+			}
+		}
+		return UTrait(traitsPaths, aliases);
 	}
 
 	function parseTypePath(ctx:Context):String {
@@ -172,7 +254,7 @@ class Parser {
 		for (token in ctx.stream) {
 			switch token.type {
 				case T_USE:
-					cls.addUses(parseUse(ctx));
+					cls.addTraits(parseUseTraits(ctx));
 				case T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT | T_ABSTRACT | T_FINAL:
 					ctx.storeToken(token);
 				case T_FUNCTION:
@@ -259,6 +341,10 @@ class Parser {
 				//$argName
 				case T_VARIABLE:
 					fn.addArg(parseVar(ctx, token.value));
+				case T_ELLIPSIS:
+					var v = parseVar(ctx, ctx.stream.expect(T_VARIABLE).value);
+					v.isRestArg = true;
+					fn.addArg(v);
 				//SomeType $arg
 				case _:
 					ctx.stream.back();

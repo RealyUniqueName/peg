@@ -12,13 +12,13 @@ class PClass {
 	public var parent(default,null):Null<String>;
 
 	public var interfaces(get,never):ReadOnlyArray<String>;
-	public var uses(get,never):ReadOnlyArray<PUse>;
+	public var traits(get,never):ReadOnlyArray<PUse>;
 	public var constants(get,never):ReadOnlyArray<PConst>;
 	public var vars(get,never):ReadOnlyArray<PVar>;
 	public var functions(get,never):ReadOnlyArray<PFunction>;
 
 	final _interfaces:Array<String> = [];
-	final _uses:Array<PUse> = [];
+	final _traits:Array<PUse> = [];
 	final _constants:Array<PConst> = [];
 	final _vars:Array<PVar> = [];
 	final _functions:Array<PFunction> = [];
@@ -31,10 +31,8 @@ class PClass {
 		_interfaces.push(i);
 	}
 
-	public function addUses(uses:Array<PUse>) {
-		for (u in uses) {
-			_uses.push(u);
-		}
+	public function addTraits(traits:PUse) {
+		_traits.push(traits);
 	}
 
 	function addConst(c:PConst) {
@@ -50,7 +48,7 @@ class PClass {
 	}
 
 	inline function get_interfaces() return _interfaces;
-	inline function get_uses() return _uses;
+	inline function get_traits() return _traits;
 	inline function get_constants() return _constants;
 	inline function get_vars() return _vars;
 	inline function get_functions() return _functions;

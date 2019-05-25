@@ -3,10 +3,12 @@
 -lib exception
 -D analyzer-optimize
 --macro nullSafety('peg', Strict)
-
 -main test.TestAll
 
-
+-lib jstack
+-D JSTACK_FORCE
+-D JSTACK_HAXE_DEV
+-D JSTACK_FORMAT=vscode
 -php bin/php
 --cmd php bin/php/index.php
 

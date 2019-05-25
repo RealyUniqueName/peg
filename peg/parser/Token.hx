@@ -14,6 +14,10 @@ abstract Token(Array<Any>) {
 		this = rawToken;
 	}
 
+	public inline function toString():String {
+		return type == value ? value : '${type}(${value})';
+	}
+
 	inline function get_type():TokenType {
 		return this[0];
 	}

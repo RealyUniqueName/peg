@@ -8,8 +8,8 @@ class PegException extends haxe.Exception {}
 class PhpException extends PegException {}
 
 class UnexpectedTokenException extends PegException {
-	public function new(token:Token, ?msg:String) {
-		var tokenStr = token.type == token.value ? token.value : '${token.type}(${token.value})';
-		super('Unexpected token $tokenStr at line ${token.line}' + (msg == null ? '' : ': $msg'));
+	public function new(token:Token, ?expected:TokenType) {
+		var expectedStr = expected == null ? '' : '; expected $expected';
+		super('Unexpected token ${token.toString()} at line ${token.line}' + expectedStr);
 	}
 }
