@@ -31,5 +31,11 @@ class TokenStream {
 		index--;
 	}
 
+	public function copy():TokenStream {
+		var stream = new TokenStream(tokens);
+		stream.index = index;
+		return stream;
+	}
+
 	inline function get_depleted() return index >= tokens.length;
 }

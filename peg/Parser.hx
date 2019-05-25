@@ -268,7 +268,9 @@ class Parser {
 				case T_RIGHT_CURLY:
 					break;
 				case T_CONST:
-					cls.addConst(parseConst(ctx));
+					for (c in parseConst(ctx)) {
+						cls.addConst(c);
+					}
 				case _:
 					throw new UnexpectedTokenException(token);
 			}
@@ -370,26 +372,36 @@ class Parser {
 		}
 	}
 
-	function parseConst(ctx:Context):PConst {
-		var c = new PConst(ctx.stream.expect(T_STRING).value);
+	function parseConst(ctx:Context):Array<PConst> {
+		var storedTokens = ctx.consumeStoredTokens();
 
-		for(token in ctx.consumeStoredTokens()) {
+		var constants = [];
+		for (token in ctx.stream) {
 			switch token.type {
-				case T_DOC_COMMENT: c.doc = token.value;
-				case T_PUBLIC: c.visibility = VPublic;
-				case T_PROTECTED: c.visibility = VProtected;
-				case T_PRIVATE: c.visibility = VPrivate;
-				case _: throw new UnexpectedTokenException(token);
+				case T_STRING:
+					var c = new PConst(token.value);
+					for(token in storedTokens.copy()) {
+						switch token.type {
+							case T_DOC_COMMENT: c.doc = token.value;
+							case T_PUBLIC: c.visibility = VPublic;
+							case T_PROTECTED: c.visibility = VProtected;
+							case T_PRIVATE: c.visibility = VPrivate;
+							case _: throw new UnexpectedTokenException(token);
+						}
+					}
+					ctx.stream.expect(T_EQUAL);
+					//TODO: parse value to figure out constant type
+					ctx.stream.skipValue();
+					constants.push(c);
+				case T_COMMA:
+				case T_SEMICOLON: break;
+				case _:
+					throw new UnexpectedTokenException(token);
 			}
 		}
 
-		ctx.stream.expect(T_EQUAL);
 
-		//TODO: parse value to figure out constant type
-		ctx.stream.skipValue();
-		ctx.stream.expect(T_SEMICOLON);
-
-		return c;
+		return constants;
 	}
 
 	function parseVar(ctx:Context, name:String):PVar {

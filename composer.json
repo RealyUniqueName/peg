@@ -1,6 +1,7 @@
 {
     "require": {
         "zendframework/zendframework": "^3.0",
-        "symfony/symfony": "^4.2"
+        "symfony/symfony": "^4.2",
+        "laravel/laravel": "^5.8"
     }
 }

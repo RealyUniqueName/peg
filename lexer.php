@@ -1,5 +1,7 @@
 <?php
 
+$isInHaxeApp = class_exists('php\Boot');
+
 function tokenize($file) {
 	$tokens = token_get_all(file_get_contents($file), TOKEN_PARSE);
 	// $tokens = token_get_all("<?php \"database={\$database}\";", TOKEN_PARSE);
@@ -25,14 +27,15 @@ function tokenize($file) {
 		// echo json_encode([$token[0],$token[2]])."\n";
 		$result[] = $token;
 	}
+	return $result;
+}
+
+//if executed as a standalone script
+if(!$isInHaxeApp) {
+	$result = tokenize($argv[1]);
 	$json = json_encode($result);
 	if(json_last_error() !== JSON_ERROR_NONE) {
 		throw new \Exception(json_last_error_msg());
 	}
-	return $json;
-}
-
-//if executed as a standalone script
-if(!class_exists('php\Boot')) {
-	echo tokenize($argv[1]);
+	echo $json;
 }
