@@ -1,5 +1,6 @@
 {
     "require": {
-        "zendframework/zendframework": "^3.0"
+        "zendframework/zendframework": "^3.0",
+        "symfony/symfony": "^4.2"
     }
 }
