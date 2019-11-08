@@ -28,11 +28,11 @@ class PNamespace {
 		_classes.push(cls);
 	}
 
-	function addConst(c:PConst) {
+	public function addConst(c:PConst) {
 		_constants.push(c);
 	}
 
-	function addFunction(fn:PFunction) {
+	public function addFunction(fn:PFunction) {
 		_functions.push(fn);
 	}
 

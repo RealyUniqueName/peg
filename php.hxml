@@ -1,8 +1,11 @@
-tests.hxml
-
 -lib jstack
+-lib safety
+-lib exception
 -D JSTACK_FORCE
 -D JSTACK_HAXE_DEV
 -D JSTACK_FORMAT=vscode
+-D analyzer-optimize
+--macro nullSafety('peg', Strict)
 -php bin/php
+-main Run
 # --cmd php bin/php/index.php
