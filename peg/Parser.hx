@@ -259,7 +259,7 @@ class Parser {
 			switch token.type {
 				case T_USE:
 					cls.addTraits(parseUseTraits(ctx));
-				case T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT | T_ABSTRACT | T_FINAL:
+				case T_VAR | T_PUBLIC | T_PROTECTED | T_PRIVATE | T_STATIC | T_DOC_COMMENT | T_ABSTRACT | T_FINAL:
 					ctx.storeToken(token);
 				case T_FUNCTION:
 					cls.addFunction(parseFunction(ctx));
@@ -357,6 +357,8 @@ class Parser {
 				case T_ELLIPSIS:
 					fn.addArg(parseRestArg());
 				//SomeType $arg
+				case T_DOC_COMMENT:
+					ctx.storeToken(token);
 				case _:
 					ctx.stream.back();
 					var type = parseType(ctx);
@@ -410,6 +412,7 @@ class Parser {
 		for(token in ctx.consumeStoredTokens()) {
 			switch token.type {
 				case T_DOC_COMMENT: v.doc = token.value;
+				case T_VAR: v.visibility = VPublic;
 				case T_PUBLIC: v.visibility = VPublic;
 				case T_PROTECTED: v.visibility = VProtected;
 				case T_PRIVATE: v.visibility = VPrivate;
