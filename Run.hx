@@ -40,7 +40,7 @@ class Run {
 
 	static function getFunction(fn:peg.php.PFunction):String {
 		var args = fn.args.map(arg -> '${getVarName(arg.name)}:${getType(arg.type)}').join(', ');
-		return '${fn.visibility} function ${fn.name}(${args}):${getType(fn.returnType)};';
+		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${fn.isStatic ? ' static' : ''} function ${fn.name}(${args}):${getType(fn.returnType)};';
 	}
 
 	static function usage() {
@@ -106,12 +106,15 @@ class Run {
 					Sys.println('package ${basePackage};');
 				}
 
-				for (c in namespace.constants) {
-					Sys.println('${getConst(c)}');
-				}
-
-				for (fn in namespace.functions) {
-					Sys.println('${getFunction(fn)}');
+				if (namespace.constants.length > 0 || namespace.functions.length > 0) {
+					Sys.println('extern class ${basePackage} {');
+					for (c in namespace.constants) {
+						Sys.println('    ${getConst(c)}');
+					}
+					for (fn in namespace.functions) {
+						Sys.println('    ${getFunction(fn)}');
+					}
+					Sys.println('}');
 				}
 
 				for (cls in namespace.classes) {
@@ -119,6 +122,7 @@ class Run {
 					var parent = ~/^_/.replace(~/\\/g.replace(cls.parent, '_'), '');
 					var ext = cls.parent != null && cls.parent != '' ? 'extends ${pkg != '' ? basePackage + '.' : ''}${parent}' : '';
 					var imp = cls.interfaces.length > 0 ? 'implements ${cls.interfaces.join(', ')}' : '';
+
 					Sys.println('extern $kwd ${cls.name} ${ext} ${imp} {');
 					for (c in cls.constants) {
 						if (c.visibility != VPrivate) {
