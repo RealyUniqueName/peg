@@ -38,9 +38,9 @@ class Run {
 		return '${v.visibility} var ${getVarName(v.name)}:${getType(v.type)}';
 	}
 
-	static function getFunction(fn:peg.php.PFunction):String {
+	static function getFunction(fn:peg.php.PFunction, forceStatic:Bool = false):String {
 		var args = fn.args.map(arg -> '${getVarName(arg.name)}:${getType(arg.type)}').join(', ');
-		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${fn.isStatic ? ' static' : ''} function ${fn.name}(${args}):${getType(fn.returnType)};';
+		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${forceStatic || fn.isStatic ? ' static' : ''} function ${fn.name}(${args}):${getType(fn.returnType)};';
 	}
 
 	static function usage() {
@@ -112,7 +112,7 @@ class Run {
 						Sys.println('    ${getConst(c)}');
 					}
 					for (fn in namespace.functions) {
-						Sys.println('    ${getFunction(fn)}');
+						Sys.println('    ${getFunction(fn, true)}');
 					}
 					Sys.println('}');
 				}
