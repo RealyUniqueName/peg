@@ -106,6 +106,7 @@ class Run {
 		if (combinedNamespaces != null) {
 			var slashesRE = ~/\\/g;
 			var leadingDotRE = ~/^\./;
+			var packageRE = ~/^(.*\.)?([^\.]+)$/;
 
 			for (nsName => namespace in combinedNamespaces) {
 				if (nsName != '') {
@@ -135,17 +136,18 @@ class Run {
 					var parent = leadingDotRE.replace(slashesRE.replace(cls.parent, '.'), '');
 
 					var clsExtends = '';
-					if (cls.parent != null && cls.parent != '') {
-						clsExtends = 'extends ${basePackage}.';
-						if (namespace.name == '') {
-							clsExtends += 'GLOBALS.';
-					 	}
-						clsExtends += parent;
+					if (parent != null && parent != '') {
+						var parentpkg = packageRE.replace(parent, '$1');
+						if (parentpkg != '') {
+							parentpkg = parentpkg.toLowerCase + '.';
+						}
+						parent = packageRE.replace(parent, '$2');
+						clsExtends = ' extends ${basePackage}.${parentpkg}${parent}';
 					}
-					var imp = cls.interfaces.length > 0 ? 'implements ${cls.interfaces.join(', ')}' : '';
+					var imp = cls.interfaces.length > 0 ? ' implements ${cls.interfaces.join(', ')}' : '';
 
 					Sys.println('@:native(\'\\\\' + phpNS + cls.name + '\')');
-					Sys.println('extern ${kwd} ${cls.name} ${clsExtends} ${imp} {');
+					Sys.println('extern ${kwd} ${cls.name}${clsExtends}${imp} {');
 					for (c in cls.constants) {
 						if (c.visibility != VPrivate) {
 							Sys.println('    ' + getConst(c));
