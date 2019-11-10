@@ -9,6 +9,10 @@ import haxe.ds.ReadOnlyArray;
 using peg.parser.Tools;
 
 class Parser {
+	static var combinationTypeRE = ~/[^\s]+\|[^\s]+/;
+	static var docTagParamsRE = ~/@param\s+([^\s]+)\s+([^\s]+)/;
+	static var docTagReturnTypeRE = ~/@return\s+([^\s]+)/s;
+
 	final tokens:ReadOnlyArray<Token>;
 
 	public function new(tokens:ReadOnlyArray<Token>) {
@@ -207,6 +211,22 @@ class Parser {
 		return name;
 	}
 
+	function mapParsedType(type:String):PType {
+		return switch(type) {
+			case 'int' | 'Int' | 'integer' | 'Integer': TInt;
+			case 'float' | 'Float': TFloat;
+			case 'string' | 'String': TString;
+			case 'string[]' | 'String[]': TArrayOfString;
+			case 'bool' | 'Bool' | 'boolean' | 'Boolean': TBool;
+			case 'array' | 'Array': TArray;
+			case 'object' | 'Object': TObject;
+			case 'callable' | 'Callable': TCallable;
+			case 'mixed' | 'Mixed': TMixed;
+			case 'resource': TResource;
+			case path: TClass(path);
+		}
+	}
+
 	function parseType(ctx:Context):PType {
 		var token = ctx.stream.next();
 		return switch token.type {
@@ -214,10 +234,7 @@ class Parser {
 			case T_CALLABLE: TCallable;
 			case T_STRING | T_NS_SEPARATOR:
 				ctx.stream.back();
-				switch(parseTypePath(ctx)) {
-					case 'string': TString;
-					case path: TClass(path);
-				}
+				mapParsedType(parseTypePath(ctx));
 			case _:
 				throw new UnexpectedTokenException(token);
 		}
@@ -318,6 +335,11 @@ class Parser {
 
 		parseArguments(ctx, fn);
 
+		var rt = parseDocTagReturnType(fn);
+		if (rt != null && fn.returnType == TMixed) {
+			fn.returnType = rt;
+		}
+
 		//body
 		for (token in ctx.stream) {
 			switch token.type {
@@ -337,6 +359,45 @@ class Parser {
 		return fn;
 	}
 
+	function parseDocTagReturnType(fn:PFunction):Null<PType> {
+		var documentedType:Null<String> = null;
+
+		if (docTagReturnTypeRE.match(fn.doc)) {
+			var type = docTagReturnTypeRE.matched(1);
+			if (combinationTypeRE.match(type)) {
+				type = 'mixed';
+			}
+			documentedType = type;
+		}
+
+		if (documentedType != null) {
+			return mapParsedType(documentedType);
+		}
+		return null;
+	}
+
+	function parseDocTagParamType(fn:PFunction, paramName:String):Null<PType> {
+		var documentedType:Null<String> = null;
+
+		for (line in fn.doc.split('\n')) {
+			if (docTagParamsRE.match(line)) {
+				var type = docTagParamsRE.matched(1);
+				if (combinationTypeRE.match(type)) {
+					type = 'mixed';
+				}
+				if (paramName == docTagParamsRE.matched(2)) {
+					documentedType = type;
+					break;
+				}
+			}
+		}
+
+		if (documentedType != null) {
+			return mapParsedType(documentedType);
+		}
+		return null;
+	}
+
 	function parseArguments(ctx:Context, fn:PFunction) {
 		function parseRestArg():PVar {
 			var v = parseVar(ctx, ctx.stream.expect(T_VARIABLE).value);
@@ -352,7 +413,12 @@ class Parser {
 					return;
 				//$argName
 				case T_VARIABLE:
-					fn.addArg(parseVar(ctx, token.value));
+					var v = parseVar(ctx, token.value);
+					var t = parseDocTagParamType(fn, v.name);
+					if (t != null && v.type == TMixed) {
+						v.type = t;
+					}
+					fn.addArg(v);
 				//...$argName
 				case T_ELLIPSIS:
 					fn.addArg(parseRestArg());
@@ -369,6 +435,10 @@ class Parser {
 						case _: throw new UnexpectedTokenException(token);
 					}
 					v.type = type;
+					var t = parseDocTagParamType(fn, v.name);
+					if (t != null && v.type == TMixed) {
+						v.type = t;
+					}
 					fn.addArg(v);
 			}
 		}

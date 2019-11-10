@@ -11,16 +11,87 @@ class Run {
 				'Float';
 			case 'TString':
 				'String';
+			case 'TArrayOfString':
+				'Array<String>';
 			case 'TBool':
 				'Bool';
 			case 'TArray':
 				'Array<Dynamic>';
+			case 'TObject':
+				'Map<String,Dynamic>';
 			case 'TCallable':
 				'Dynamic';
 			case 'TMixed':
 				'Dynamic';
+			case 'TResource':
+				'php.Resource';
 			case 'TClass':
-				'${basePackage}.${t.getParameters().shift()}';
+				var c = t.getParameters().shift();
+				switch (~/^\\/.replace(c, '')) {
+					// These are in the haxe standard library
+					case 'ArrayAccess' | 'Closure' | 'Error' | 'ErrorException' | 'Exception' |
+					'Generator' | 'IteratorAggregate' | 'RuntimeException' |
+					'SessionHandlerInterface' | 'StdClass' | 'Throwable' | 'Traversable':
+						'php.${c}';
+					// These are in the haxe standard library
+					case 'Mysqli' | 'Mysqli_driver' | 'Mysqli_result' | 'Mysqli_stmt' |
+					'Mysqli_warning' | 'PDO' | 'PDOException' | 'PDOStatement' | 'SQLite3' |
+					'SQLite3Result' | 'SQLite3Stmt':
+						'php.db.${c}';
+					// These are in the haxe standard library
+					case 'ReflectionClass' | 'ReflectionFunctionAbstract' | 'ReflectionMethod' |
+					'ReflectionProperty' | 'Reflector':
+						'php.reflection.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'DateInterval' | 'DatePeriod' | 'DateTime' | 'DateTimeImmutable' |
+					'DateTimeInterface' | 'DateTimeZone':
+						'php.calendar.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'ArithmeticError' | 'AssertionError' | 'BadFunctionCallException' |
+					'BadMethodCallException' | 'DivisionByZeroError' | 'DomainException' |
+					'InvalidArgumentException' | 'LengthException' | 'LogicException' |
+					'OutOfBoundsException' | 'OutOfRangeException' | 'OverflowException' |
+					'ParseError' | 'RangeException' | 'TypeError' | 'UnderflowException' |
+					'UnexpectedValueException':
+						'php.exceptions.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'SplFileInfo' | 'SplFileObject' | 'SplTempFileObject':
+						'php.files.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'ImapCloseFlags' | 'ImapHeaders' | 'ImapOverview' | 'ImapSearchFlags' |
+					'ImapSortFlags' | 'ImapStatusFlags' | 'ImapStream' | 'MailAddress' |
+					'MailboxInfo' | 'MailStructure':
+						'php.imap.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'Countable' | 'Iterator' | 'OuterIterator' | 'RecursiveIterator' |
+					'SeekableIterator' | 'Serializable' | 'SplObserver' | 'SplSubject':
+						'php.interfaces.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'AppendIterator' | 'ArrayIterator' | 'CachingIterator' |
+					'CallbackFilterIterator' | 'DirectoryIterator' | 'EmptyIterator' |
+					'FilesystemIterator' | 'FilterIterator' | 'GlobIterator' | 'InfiniteIterator' |
+					'IteratorIterator' | 'LimitIterator' | 'MultipleIterator' | 
+					'NoRewindIterator' | 'ParentIterator' | 'RecursiveArrayIterator' |
+					'RecursiveCachingIterator' | 'RecursiveCallbackFilterIterator' |
+					'RecursiveDirectoryIterator' | 'RecursiveFilterIterator' |
+					'RecursiveIteratorIterator' | 'RecursiveRegexIterator' |
+					'RecursiveTreeIterator' | 'RegexIterator':
+						'php.iterators.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'ArrayObject':
+						'php.misc.${c}';
+					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
+					case 'DOMAttr' | 'DOMCdataSection' | 'DOMCharacterData' | 'DOMComment' |
+					'DOMDocument' | 'DOMDocumentFragment' | 'DOMDocumentType' | 'DOMElement' |
+					'DOMEntity' | 'DOMEntityReference' | 'DOMException' | 'DOMImplementation' |
+					'DOMNamedNodeMap' | 'DOMNode' | 'DOMNodeList' | 'DOMNotation' |
+					'DOMProcessingInstruction' | 'DOMText' | 'DOMXPath' | 'LibXMLError' |
+					'SimpleXMLElement' | 'SimpleXMLIterator' | 'XMLReader' | 'XSLTProcessor':
+						'php.xml.${c}';
+					// All other/unknown classes
+					case _:
+						'${basePackage}.${c}';
+				}
 			case _:
 				t.getName();
 		};
