@@ -28,6 +28,8 @@ class Run {
 			case 'TClass':
 				var c = t.getParameters().shift();
 				switch (~/^\\/.replace(c, '')) {
+					case 'stdClass':
+						'php.StdClass';
 					// These are in the haxe standard library
 					case 'ArrayAccess' | 'Closure' | 'Error' | 'ErrorException' | 'Exception' |
 					'Generator' | 'IteratorAggregate' | 'RuntimeException' |
