@@ -1,13 +1,15 @@
 package test;
 
+import peg.Generator;
 import peg.PegException;
 
 class TestAll {
 	static public function main() {
 		var cnt = 0;
 		Sys.print('');
-		for (file in new peg.SourcesIterator('vendor')) {
-			Sys.print('\rParsing files: ${cnt++}');
+		var allNamespaces = [];
+		for (file in new peg.SourcesIterator('vendor/zendframework/zend-json')) {
+			Sys.print('\rParsing php files: ${++cnt}');
 
 			var namespaces = try {
 				file.parse();
@@ -28,28 +30,17 @@ class TestAll {
 				continue;
 			}
 			for (namespace in namespaces) {
-				// Sys.println('namespace: ${namespace.name}');
-
-				// for (u in namespace.uses) {
-				// 	Sys.println('  use ${u.toString()}');
-				// }
-
-				// for (cls in namespace.classes) {
-				// 	var kwd = cls.isInterface ? 'interface' : 'class';
-				// 	Sys.println('  $kwd ${cls.name} extends ${cls.parent} implements ${cls.interfaces.join(', ')}');
-				// 	for (c in cls.constants) {
-				// 		Sys.println('    const ${c.name}');
-				// 	}
-				// 	for (v in cls.vars) {
-				// 		Sys.println('    var ${v.name}');
-				// 	}
-				// 	for (fn in cls.functions) {
-				// 		Sys.println('    function ${fn.name}');
-				// 	}
-				// }
+				allNamespaces.push(namespace);
 			}
-			// Sys.println('Ok');
 		}
-		Sys.println('\nAll done!');
+		Sys.println('');
+		cnt = 0;
+		var gen = new Generator(
+			allNamespaces,
+			'bin/externs',
+			()-> Sys.print('\rWriting Haxe externs: ${++cnt}'),
+			() -> Sys.println('\nAll done!')
+		);
+		gen.run();
 	}
 }
