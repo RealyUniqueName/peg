@@ -4,50 +4,47 @@ class Run {
 	static var basePackage = '';
 
 	static function getType(t:peg.php.PType):String {
-		return switch t.getName() {
-			case 'TInt':
+		return switch t {
+			case TInt:
 				'Int';
-			case 'TFloat':
+			case TFloat:
 				'Float';
-			case 'TString':
+			case TString:
 				'String';
-			case 'TArrayOfString':
-				'Array<String>';
-			case 'TBool':
+			case TBool:
 				'Bool';
-			case 'TArray':
-				'Array<Dynamic>';
-			case 'TObject':
+			case TArray(type):
+				'Array<${getType(type)}>';
+			case TObject:
 				'Map<String,Dynamic>';
-			case 'TCallable':
+			case TCallable:
 				'Dynamic';
-			case 'TMixed':
+			case TMixed:
 				'Dynamic';
-			case 'TResource':
+			case TResource:
 				'php.Resource';
-			case 'TClass':
-				var c = t.getParameters().shift();
-				switch (~/^\\/.replace(c, '')) {
+			case TClass(name):
+				switch (~/^\\/.replace(name, '')) {
 					case 'stdClass':
 						'php.StdClass';
 					// These are in the haxe standard library
 					case 'ArrayAccess' | 'Closure' | 'Error' | 'ErrorException' | 'Exception' |
 					'Generator' | 'IteratorAggregate' | 'RuntimeException' |
 					'SessionHandlerInterface' | 'StdClass' | 'Throwable' | 'Traversable':
-						'php.${c}';
+						'php.${name}';
 					// These are in the haxe standard library
 					case 'Mysqli' | 'Mysqli_driver' | 'Mysqli_result' | 'Mysqli_stmt' |
 					'Mysqli_warning' | 'PDO' | 'PDOException' | 'PDOStatement' | 'SQLite3' |
 					'SQLite3Result' | 'SQLite3Stmt':
-						'php.db.${c}';
+						'php.db.${name}';
 					// These are in the haxe standard library
 					case 'ReflectionClass' | 'ReflectionFunctionAbstract' | 'ReflectionMethod' |
 					'ReflectionProperty' | 'Reflector':
-						'php.reflection.${c}';
+						'php.reflection.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'DateInterval' | 'DatePeriod' | 'DateTime' | 'DateTimeImmutable' |
 					'DateTimeInterface' | 'DateTimeZone':
-						'php.calendar.${c}';
+						'php.calendar.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'ArithmeticError' | 'AssertionError' | 'BadFunctionCallException' |
 					'BadMethodCallException' | 'DivisionByZeroError' | 'DomainException' |
@@ -55,19 +52,19 @@ class Run {
 					'OutOfBoundsException' | 'OutOfRangeException' | 'OverflowException' |
 					'ParseError' | 'RangeException' | 'TypeError' | 'UnderflowException' |
 					'UnexpectedValueException':
-						'php.exceptions.${c}';
+						'php.exceptions.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'SplFileInfo' | 'SplFileObject' | 'SplTempFileObject':
-						'php.files.${c}';
+						'php.files.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'ImapCloseFlags' | 'ImapHeaders' | 'ImapOverview' | 'ImapSearchFlags' |
 					'ImapSortFlags' | 'ImapStatusFlags' | 'ImapStream' | 'MailAddress' |
 					'MailboxInfo' | 'MailStructure':
-						'php.imap.${c}';
+						'php.imap.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'Countable' | 'Iterator' | 'OuterIterator' | 'RecursiveIterator' |
 					'SeekableIterator' | 'Serializable' | 'SplObserver' | 'SplSubject':
-						'php.interfaces.${c}';
+						'php.interfaces.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'AppendIterator' | 'ArrayIterator' | 'CachingIterator' |
 					'CallbackFilterIterator' | 'DirectoryIterator' | 'EmptyIterator' |
@@ -78,10 +75,10 @@ class Run {
 					'RecursiveDirectoryIterator' | 'RecursiveFilterIterator' |
 					'RecursiveIteratorIterator' | 'RecursiveRegexIterator' |
 					'RecursiveTreeIterator' | 'RegexIterator':
-						'php.iterators.${c}';
+						'php.iterators.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'ArrayObject':
-						'php.misc.${c}';
+						'php.misc.${name}';
 					// These require phpnatives (https://lib.haxe.org/p/phpnatives/)
 					case 'DOMAttr' | 'DOMCdataSection' | 'DOMCharacterData' | 'DOMComment' |
 					'DOMDocument' | 'DOMDocumentFragment' | 'DOMDocumentType' | 'DOMElement' |
@@ -89,18 +86,23 @@ class Run {
 					'DOMNamedNodeMap' | 'DOMNode' | 'DOMNodeList' | 'DOMNotation' |
 					'DOMProcessingInstruction' | 'DOMText' | 'DOMXPath' | 'LibXMLError' |
 					'SimpleXMLElement' | 'SimpleXMLIterator' | 'XMLReader' | 'XSLTProcessor':
-						'php.xml.${c}';
+						'php.xml.${name}';
 					// All other/unknown classes
 					case _:
-						'${basePackage}.${c}';
+						if (basePackage != null && basePackage != '') {
+							'${basePackage}.${name}';
+						} else {
+							name;
+						}
 				}
 			case _:
+				Sys.println('// WARNING: could not determine the type of ${t.getName()}');
 				t.getName();
 		};
 	}
 
 	static function getConst(c:peg.php.PConst):String {
-		return '${c.visibility} const ${c.name}:${getType(c.type)}';
+		return '@:phpClassConst static ${c.visibility} final ${c.name}:${getType(c.type)}';
 	}
 
 	static function getVarName(name:String):String {
@@ -117,7 +119,7 @@ class Run {
 		var callSite = '';
 		if (isNamespaceGlobal) {
 			var ns = namespace != '' ? '\\\\${namespace}\\\\': '';
-			callSite = ' return untyped __call__(\'${ns}${fn.name}\'${inlineCallParams != '' ? ', ' + inlineCallParams : ''})';
+			callSite = ' return php.Syntax.call(\'${ns}${fn.name}\'${inlineCallParams != '' ? ', ' + inlineCallParams : ''})';
 		}
 		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${isNamespaceGlobal || fn.isStatic ? ' static inline' : ''} function ${fn.name}(${args}):${getType(fn.returnType)}${callSite};';
 	}
@@ -143,19 +145,19 @@ class Run {
 			var namespaces = try {
 				file.parse();
 			} catch(e:UnexpectedTokenException) {
-				Sys.println('\n${file.path}:${e.token.line} FAIL >>');
-				Sys.println(e.toString());
+				Sys.println('\n// WARNING: ${file.path}:${e.token.line} FAIL >>');
+				Sys.println('// ${e.toString()}');
 				Sys.exit(1);
 				return;
 			} catch(e:ParserException) {
-				Sys.println('\n${file.path} FAIL >>');
-				Sys.println(e.toString());
+				Sys.println('\n// WARNING: ${file.path} FAIL >>');
+				Sys.println('// ${e.toString()}');
 				Sys.exit(1);
 				return;
 			} catch(e:PegException) {
-				Sys.println('\n${file.path} FAIL >>');
-				Sys.println(e.toString());
-				Sys.println('<< FAIL, skipped');
+				Sys.println('\n// WARNING: ${file.path} FAIL >>');
+				Sys.println('// ${e.toString()}');
+				Sys.println('// FAIL, skipped');
 				continue;
 			}
 			for (namespace in namespaces) {

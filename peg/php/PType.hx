@@ -4,9 +4,8 @@ enum PType {
 	TInt;
 	TFloat;
 	TString;
-	TArrayOfString;
 	TBool;
-	TArray;
+	TArray(type:PType);
 	TObject;
 	TCallable;
 	TMixed;

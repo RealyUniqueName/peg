@@ -212,16 +212,18 @@ class Parser {
 	}
 
 	function mapParsedType(type:String):PType {
-		return switch(type) {
-			case 'int' | 'Int' | 'integer' | 'Integer': TInt;
-			case 'float' | 'Float': TFloat;
-			case 'string' | 'String': TString;
-			case 'string[]' | 'String[]': TArrayOfString;
-			case 'bool' | 'Bool' | 'boolean' | 'Boolean': TBool;
-			case 'array' | 'Array': TArray;
-			case 'object' | 'Object': TObject;
-			case 'callable' | 'Callable': TCallable;
-			case 'mixed' | 'Mixed': TMixed;
+		if (type.substr(-2, 2) == '[]') {
+			return TArray(mapParsedType(type.substr(0, type.length - 2)));
+		}
+		return switch(type.toLowerCase()) {
+			case 'int' | 'integer': TInt;
+			case 'float': TFloat;
+			case 'string': TString;
+			case 'bool' | 'boolean': TBool;
+			case 'array': TArray(TMixed);
+			case 'object': TObject;
+			case 'callable': TCallable;
+			case 'mixed': TMixed;
 			case 'resource': TResource;
 			case path: TClass(path);
 		}
@@ -230,7 +232,7 @@ class Parser {
 	function parseType(ctx:Context):PType {
 		var token = ctx.stream.next();
 		return switch token.type {
-			case T_ARRAY: TArray;
+			case T_ARRAY: TArray(TMixed);
 			case T_CALLABLE: TCallable;
 			case T_STRING | T_NS_SEPARATOR:
 				ctx.stream.back();
@@ -335,9 +337,11 @@ class Parser {
 
 		parseArguments(ctx, fn);
 
-		var rt = parseDocTagReturnType(fn);
-		if (rt != null && fn.returnType == TMixed) {
-			fn.returnType = rt;
+		if (fn.returnType == TMixed) {
+			var rt = parseDocTagReturnType(fn);
+			if (rt != null) {
+				fn.returnType = rt;
+			}
 		}
 
 		//body
@@ -364,6 +368,7 @@ class Parser {
 
 		if (docTagReturnTypeRE.match(fn.doc)) {
 			var type = docTagReturnTypeRE.matched(1);
+			// TODO: Implement correct multiple-type parsing (type1|type2).
 			if (combinationTypeRE.match(type)) {
 				type = 'mixed';
 			}
@@ -382,6 +387,7 @@ class Parser {
 		for (line in fn.doc.split('\n')) {
 			if (docTagParamsRE.match(line)) {
 				var type = docTagParamsRE.matched(1);
+				// TODO: Implement correct multiple-type parsing (type1|type2).
 				if (combinationTypeRE.match(type)) {
 					type = 'mixed';
 				}
@@ -414,9 +420,11 @@ class Parser {
 				//$argName
 				case T_VARIABLE:
 					var v = parseVar(ctx, token.value);
-					var t = parseDocTagParamType(fn, v.name);
-					if (t != null && v.type == TMixed) {
-						v.type = t;
+					if (v.type == TMixed) {
+						var t = parseDocTagParamType(fn, v.name);
+						if (t != null) {
+							v.type = t;
+						}
 					}
 					fn.addArg(v);
 				//...$argName
@@ -435,9 +443,11 @@ class Parser {
 						case _: throw new UnexpectedTokenException(token);
 					}
 					v.type = type;
-					var t = parseDocTagParamType(fn, v.name);
-					if (t != null && v.type == TMixed) {
-						v.type = t;
+					if (v.type == TMixed) {
+						var t = parseDocTagParamType(fn, v.name);
+						if (t != null) {
+							v.type = t;
+						}
 					}
 					fn.addArg(v);
 			}
