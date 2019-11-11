@@ -10,8 +10,9 @@ using peg.parser.Tools;
 
 class Parser {
 	static var combinationTypeRE = ~/[^\s]+\|[^\s]+/;
+	static var docTagVarTypeRE = ~/@var\s+([^\s]+)/;
 	static var docTagParamsRE = ~/@param\s+([^\s]+)\s+([^\s]+)/;
-	static var docTagReturnTypeRE = ~/@return\s+([^\s]+)/s;
+	static var docTagReturnTypeRE = ~/@return\s+([^\s]+)/;
 
 	final tokens:ReadOnlyArray<Token>;
 
@@ -338,7 +339,7 @@ class Parser {
 		parseArguments(ctx, fn);
 
 		if (fn.returnType == TMixed) {
-			var rt = parseDocTagReturnType(fn);
+			var rt = parseDocTagReturnType(fn.doc);
 			if (rt != null) {
 				fn.returnType = rt;
 			}
@@ -363,35 +364,25 @@ class Parser {
 		return fn;
 	}
 
-	function parseDocTagReturnType(fn:PFunction):Null<PType> {
+	function parseDocTagType(?doc:String, re:EReg, ?paramName:String):Null<PType> {
 		var documentedType:Null<String> = null;
 
-		if (docTagReturnTypeRE.match(fn.doc)) {
-			var type = docTagReturnTypeRE.matched(1);
-			// TODO: Implement correct multiple-type parsing (type1|type2).
-			if (combinationTypeRE.match(type)) {
-				type = 'mixed';
-			}
-			documentedType = type;
-		}
-
-		if (documentedType != null) {
-			return mapParsedType(documentedType);
-		}
-		return null;
-	}
-
-	function parseDocTagParamType(fn:PFunction, paramName:String):Null<PType> {
-		var documentedType:Null<String> = null;
-
-		for (line in fn.doc.split('\n')) {
-			if (docTagParamsRE.match(line)) {
-				var type = docTagParamsRE.matched(1);
+		if (doc != null) {
+			for (line in doc.split('\n')) {
+				if (!re.match(line)) {
+					continue;
+				}
+				var type = re.matched(1);
 				// TODO: Implement correct multiple-type parsing (type1|type2).
 				if (combinationTypeRE.match(type)) {
 					type = 'mixed';
 				}
-				if (paramName == docTagParamsRE.matched(2)) {
+				if (paramName != null) {
+					if (paramName == re.matched(2)) {
+						documentedType = type;
+						break;
+					}
+				} else {
 					documentedType = type;
 					break;
 				}
@@ -402,6 +393,18 @@ class Parser {
 			return mapParsedType(documentedType);
 		}
 		return null;
+	}
+
+	inline function parseDocTagVarOrConstType(?doc:String): Null<PType> {
+		return parseDocTagType(doc, docTagVarTypeRE);
+	}
+
+	inline function parseDocTagReturnType(?doc:String):Null<PType> {
+		return parseDocTagType(doc, docTagReturnTypeRE);
+	}
+
+	inline function parseDocTagParamType(?doc:String, paramName:String):Null<PType> {
+		return parseDocTagType(doc, docTagParamsRE, paramName);
 	}
 
 	function parseArguments(ctx:Context, fn:PFunction) {
@@ -421,7 +424,7 @@ class Parser {
 				case T_VARIABLE:
 					var v = parseVar(ctx, token.value);
 					if (v.type == TMixed) {
-						var t = parseDocTagParamType(fn, v.name);
+						var t = parseDocTagParamType(fn.doc, v.name);
 						if (t != null) {
 							v.type = t;
 						}
@@ -444,7 +447,7 @@ class Parser {
 					}
 					v.type = type;
 					if (v.type == TMixed) {
-						var t = parseDocTagParamType(fn, v.name);
+						var t = parseDocTagParamType(fn.doc, v.name);
 						if (t != null) {
 							v.type = t;
 						}
@@ -474,6 +477,12 @@ class Parser {
 					ctx.stream.expect(T_EQUAL);
 					//TODO: parse value to figure out constant type
 					ctx.stream.skipValue();
+					if (c.type == TMixed) {
+						var v = parseDocTagVarOrConstType(c.doc);
+						if (v != null) {
+							c.type = v;
+						}
+					}
 					constants.push(c);
 				case T_COMMA:
 				case T_SEMICOLON: break;
@@ -517,6 +526,12 @@ class Parser {
 				case T_EQUAL:
 					//TODO: parse value to figure out var type
 					ctx.stream.skipValue();
+					if (v.type == TMixed) {
+						var t = parseDocTagVarOrConstType(v.doc);
+						if (t != null) {
+							v.type = t;
+						}
+					}
 				case _:
 					throw new UnexpectedTokenException(token);
 			}
