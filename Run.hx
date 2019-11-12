@@ -70,7 +70,7 @@ class Run {
 					case 'AppendIterator' | 'ArrayIterator' | 'CachingIterator' |
 					'CallbackFilterIterator' | 'DirectoryIterator' | 'EmptyIterator' |
 					'FilesystemIterator' | 'FilterIterator' | 'GlobIterator' | 'InfiniteIterator' |
-					'IteratorIterator' | 'LimitIterator' | 'MultipleIterator' | 
+					'IteratorIterator' | 'LimitIterator' | 'MultipleIterator' |
 					'NoRewindIterator' | 'ParentIterator' | 'RecursiveArrayIterator' |
 					'RecursiveCachingIterator' | 'RecursiveCallbackFilterIterator' |
 					'RecursiveDirectoryIterator' | 'RecursiveFilterIterator' |
@@ -103,7 +103,7 @@ class Run {
 	}
 
 	static function getConst(c:peg.php.PConst):String {
-		return '@:phpClassConst static ${c.visibility} final ${c.name}:${getType(c.type)}';
+		return '@:phpClassConst static ${c.visibility} final ${c.name}:${getType(c.type)};';
 	}
 
 	static function getVarName(name:String):String {
@@ -111,18 +111,56 @@ class Run {
 	}
 
 	static function getVar(v:peg.php.PVar):String {
-		return '${v.visibility} var ${getVarName(v.name)}:${getType(v.type)}';
+		return '${v.visibility} var ${getVarName(v.name)}:${getType(v.type)};';
 	}
 
 	static function getFunction(fn:peg.php.PFunction, isNamespaceGlobal:Bool = false, ?namespace:String):String {
+		var fndefinition = '';
+
+		// set final functions as final
+		if (fn.isFinal) {
+			fndefinition += 'final ';
+		}
+
+		// set function visibility
+		if (fn.visibility != null) {
+			fndefinition += '${fn.visibility} ';
+		}
+
+		// set abstract functions as abstract
+		if (fn.isAbstract) {
+			fndefinition += 'abstract ';
+		}
+
+		// set namespace or global functions and static functions as static
+		if (isNamespaceGlobal || fn.isStatic) {
+			fndefinition += 'static ';
+		}
+
+		// set namespace or global functions as inline
+		if (isNamespaceGlobal) {
+			fndefinition += 'inline ';
+		}
+
+		// function name, params, and return type
 		var args = fn.args.map(arg -> '${arg.isOptional ? '?' : ''}${getVarName(arg.name)}:${getType(arg.type)}').join(', ');
-		var inlineCallParams = fn.args.map(arg -> getVarName(arg.name)).join(', ');
-		var callSite = '';
+		fndefinition += 'function ${fn.name}(${args}):${getType(fn.returnType)}';
+
+		// callsite of inline functions for PHP namespace or global functions
 		if (isNamespaceGlobal) {
 			var ns = namespace != '' ? '\\\\${namespace}\\\\' : '';
-			callSite = ' return php.Syntax.call(\'${ns}${fn.name}\'${inlineCallParams != '' ? ', ' + inlineCallParams : ''})';
+			var callsiteParams = fn.args.map(arg -> getVarName(arg.name)).join(', ');
+			if (callsiteParams != '') {
+				callsiteParams = ', ${callsiteParams}';
+			}
+
+			fndefinition += ' return php.Syntax.call(\'${ns}${fn.name}\'${callsiteParams})';
 		}
-		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${isNamespaceGlobal || fn.isStatic ? ' static' : ''}${callSite != '' ? ' inline' : ''} function ${fn.name}(${args}):${getType(fn.returnType)}${callSite};';
+
+		// end of statement
+		fndefinition += ';';
+
+		return fndefinition;
 	}
 
 	static function usage() {
