@@ -121,7 +121,7 @@ class Run {
 			var ns = namespace != '' ? '\\\\${namespace}\\\\': '';
 			callSite = ' return php.Syntax.call(\'${ns}${fn.name}\'${inlineCallParams != '' ? ', ' + inlineCallParams : ''})';
 		}
-		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${isNamespaceGlobal || fn.isStatic ? ' static inline' : ''} function ${fn.name}(${args}):${getType(fn.returnType)}${callSite};';
+		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${isNamespaceGlobal || fn.isStatic ? ' static' : ''}${callSite != '' ? ' inline' : ''} function ${fn.name}(${args}):${getType(fn.returnType)}${callSite};';
 	}
 
 	static function usage() {
