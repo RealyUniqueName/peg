@@ -16,8 +16,8 @@ class Run {
 				'Bool';
 			case TArray(type):
 				'Array<${getType(type)}>';
-			case TObject:
-				'Map<String,Dynamic>';
+			case TObject(indexType, valueType):
+				'Map<${getType(indexType)},${getType(valueType)}>';
 			case TCallable:
 				'Dynamic';
 			case TMixed:

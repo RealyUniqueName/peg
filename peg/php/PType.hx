@@ -6,7 +6,7 @@ enum PType {
 	TString;
 	TBool;
 	TArray(type:PType);
-	TObject;
+	TObject(indexType:PType, valueType:PType);
 	TCallable;
 	TMixed;
 	TResource;
