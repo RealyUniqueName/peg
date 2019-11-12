@@ -3,6 +3,55 @@ import peg.PegException;
 
 class Run {
 	static var basePackage = '';
+	static var currentClass = '';
+
+	static var haxeKeywords = [
+		'abstract',
+		'break',
+		'case',
+		'cast',
+		'catch',
+		'class',
+		'continue',
+		'default',
+		'do',
+		'dynamic',
+		'else',
+		'enum',
+		'extends',
+		'extern',
+		'false',
+		'final',
+		'for',
+		'function',
+		'if',
+		'implements',
+		'import',
+		'in',
+		'inline',
+		'interface',
+		'macro',
+		'new',
+		'null',
+		'operator',
+		'overload',
+		'override',
+		'package',
+		'private',
+		'public',
+		'return',
+		'static',
+		'switch',
+		'this',
+		'throw',
+		'true',
+		'try',
+		'typedef',
+		'untyped',
+		'using',
+		'var',
+		'while',
+	];
 
 	static function getType(t:peg.php.PType):String {
 		return switch t {
@@ -91,6 +140,8 @@ class Run {
 					'SimpleXMLElement' | 'SimpleXMLIterator' | 'XMLReader' | 'XSLTProcessor':
 						'php.xml.${name}';
 					// All other/unknown classes
+					case 'self':
+						currentClass;
 					case className:
 						if (basePackage != null && basePackage != '') {
 							'${basePackage}.${className}';
@@ -109,7 +160,11 @@ class Run {
 	}
 
 	static function getVarName(name:String):String {
-		return ~/^[$]/.replace(name, '');
+		name = ~/^[$]/.replace(name, '');
+		if (haxeKeywords.indexOf(name) != -1) {
+			name += '_';
+		}
+		return name;
 	}
 
 	static function getVar(v:peg.php.PVar):String {
@@ -257,6 +312,7 @@ class Run {
 				}
 
 				for (cls in namespace.classes) {
+					currentClass = cls.name;
 					var kwd = cls.isInterface ? 'interface' : 'class';
 					var phpNS = slashesRE.replace(nsName, '\\\\\\\\');
 					if (phpNS != '') {
