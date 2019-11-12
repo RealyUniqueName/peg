@@ -4,15 +4,34 @@ import haxe.io.Eof;
 import haxe.Exception;
 import haxe.io.Error;
 import haxe.io.BytesBuffer;
+import haxe.io.Path;
 import haxe.Json;
+import sys.FileSystem;
 import sys.io.Process;
 
 class Lexer {
-	static inline var LEXER_PHP = 'lexer.php';
+	static var LEXER_PHP = 'lexer.php';
+	static var ALT_LEXER_PHP_PATHS = [
+		// if lexer.php is alongside the executable
+		Path.join([Path.directory(Sys.programPath()), 'lexer.php']),
+		// if this project is compiled to a single file lexer.php is likley one directory
+		// up from the executable
+		Path.join([Path.directory(Sys.programPath()), '..', 'lexer.php']),
+		// if this project is compiled to PHP from the git repo lexer.php is likely two
+		// directories up from the executable
+		Path.join([Path.directory(Sys.programPath()), '..', '..', 'lexer.php']),
+	];
 
 	public final tokens:ReadOnlyArray<Token>;
 
 	public function new(phpCode:String) {
+		if (!FileSystem.exists(LEXER_PHP)) {
+			for (path in ALT_LEXER_PHP_PATHS) {
+				if (FileSystem.exists(path)) {
+					LEXER_PHP = path;
+				}
+			}
+		}
 		tokens = tokenize(phpCode);
 	}
 
