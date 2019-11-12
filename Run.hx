@@ -89,11 +89,11 @@ class Run {
 					'SimpleXMLElement' | 'SimpleXMLIterator' | 'XMLReader' | 'XSLTProcessor':
 						'php.xml.${name}';
 					// All other/unknown classes
-					case _:
+					case className:
 						if (basePackage != null && basePackage != '') {
-							'${basePackage}.${name}';
+							'${basePackage}.${className}';
 						} else {
-							name;
+							className;
 						}
 				}
 			case _:
