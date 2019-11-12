@@ -526,6 +526,7 @@ class Parser {
 				case T_EQUAL:
 					//TODO: parse value to figure out var type
 					ctx.stream.skipValue();
+					v.isOptional = true;
 					if (v.type == TMixed) {
 						var t = parseDocTagVarOrConstType(v.doc);
 						if (t != null) {

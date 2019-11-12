@@ -114,11 +114,11 @@ class Run {
 	}
 
 	static function getFunction(fn:peg.php.PFunction, isNamespaceGlobal:Bool = false, ?namespace:String):String {
-		var args = fn.args.map(arg -> '${getVarName(arg.name)}:${getType(arg.type)}').join(', ');
+		var args = fn.args.map(arg -> '${arg.isOptional ? '?' : ''}${getVarName(arg.name)}:${getType(arg.type)}').join(', ');
 		var inlineCallParams = fn.args.map(arg -> getVarName(arg.name)).join(', ');
 		var callSite = '';
 		if (isNamespaceGlobal) {
-			var ns = namespace != '' ? '\\\\${namespace}\\\\': '';
+			var ns = namespace != '' ? '\\\\${namespace}\\\\' : '';
 			callSite = ' return php.Syntax.call(\'${ns}${fn.name}\'${inlineCallParams != '' ? ', ' + inlineCallParams : ''})';
 		}
 		return '${fn.isAbstract ? 'abstract ' : ''}${fn.isFinal ? 'final ' : ''}${fn.visibility}${isNamespaceGlobal || fn.isStatic ? ' static' : ''}${callSite != '' ? ' inline' : ''} function ${fn.name}(${args}):${getType(fn.returnType)}${callSite};';
