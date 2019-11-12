@@ -226,6 +226,7 @@ class Parser {
 			case 'callable': TCallable;
 			case 'mixed': TMixed;
 			case 'resource': TResource;
+			case 'void': TVoid;
 			case _: TClass(type);
 		}
 	}

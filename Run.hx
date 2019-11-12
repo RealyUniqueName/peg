@@ -24,6 +24,8 @@ class Run {
 				'Dynamic';
 			case TResource:
 				'php.Resource';
+			case TVoid:
+				'Void';
 			case TClass(name):
 				switch (~/^\\/.replace(name, '')) {
 					case 'stdClass':
