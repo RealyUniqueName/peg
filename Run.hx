@@ -1,3 +1,4 @@
+import haxe.io.Path;
 import peg.PegException;
 
 class Run {
@@ -126,12 +127,22 @@ class Run {
 
 	static function usage() {
 		Sys.println('USAGE:');
-		Sys.println('   php index.php <base-package-name> <file-or-dir-to-externalize>');
+		Sys.println('   php index.php <base-package-name> <file-or-dir-to-externalize> [--ignore <path(s)>]');
 	}
 
 	static function main() {
-		var basePackage = Sys.args()[0];
-		var path = Sys.args()[1];
+		var args = Sys.args();
+		var basePackage = args[0];
+		var path = args[1];
+
+		var ignorePaths:Array<String> = [];
+
+		if (args[2] == '--ignore') {
+			ignorePaths = args.slice(3);
+		}
+
+		ignorePaths = ignorePaths.map(ip -> Path.isAbsolute(ip) ? ip :
+			Path.normalize(Path.join([Sys.getCwd(), path, ip])));
 
 		if (basePackage == null || basePackage == '') {
 			usage();
@@ -142,6 +153,9 @@ class Run {
 
 		var combinedNamespaces:Map<String, peg.php.PNamespace> = [];
 		for(file in new peg.SourcesIterator(path)) {
+			if (ignorePaths.indexOf(file.path) != -1) {
+				continue;
+			}
 			var namespaces = try {
 				file.parse();
 			} catch(e:UnexpectedTokenException) {
