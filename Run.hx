@@ -4,6 +4,7 @@ import peg.PegException;
 class Run {
 	static var basePackage = '';
 	static var currentClass = '';
+	static var currentNamespace = '';
 
 	static var haxeKeywords = [
 		'abstract',
@@ -52,6 +53,22 @@ class Run {
 		'var',
 		'while',
 	];
+
+	static function resolveClass(className:String):String {
+		var cn = className.substr(0, 1).toUpperCase() + className.substr(1);
+		if (basePackage != null && basePackage != '' && currentNamespace != '') {
+			return '${basePackage}.${currentNamespace}.${cn}';
+		}
+		if (basePackage != null && basePackage != '') {
+			return '${basePackage}.${cn}';
+		}
+		if (currentNamespace != '') {
+			return '${currentNamespace}.${cn}';
+		}
+
+		return cn;
+
+	}
 
 	static function getType(t:peg.php.PType):String {
 		return switch t {
@@ -141,17 +158,9 @@ class Run {
 						'php.xml.${name}';
 					// All other/unknown classes
 					case 'self':
-						if (basePackage != null && basePackage != '') {
-							'${basePackage}.${currentClass}';
-						} else {
-							currentClass;
-						}
+						resolveClass(currentClass);
 					case className:
-						if (basePackage != null && basePackage != '') {
-							'${basePackage}.${className}';
-						} else {
-							className;
-						}
+						resolveClass(className);
 				}
 			case _:
 				Sys.println('// WARNING: could not determine the type of ${t.getName()}');
@@ -172,20 +181,33 @@ class Run {
 	}
 
 	static function getVar(v:peg.php.PVar):String {
-		return '${v.visibility} var ${getVarName(v.name)}:${getType(v.type)};';
+		var nativeName = ~/^[$]/.replace(v.name, '');
+		var haxeName = getVarName(v.name);
+
+		var nativeDefine = '';
+		if (nativeName != haxeName) {
+			nativeDefine = '@:native(\'${nativeName}\') ';
+		}
+
+		return '${nativeDefine}${v.visibility} var ${haxeName}:${getType(v.type)};';
 	}
 
 	static function getFunction(fn:peg.php.PFunction, isNamespaceGlobal:Bool = false, ?namespace:String):String {
 		var fndefinition = '';
 
-		// set final functions as final
-		if (fn.isFinal) {
-			fndefinition += 'final ';
+		var fnHaxeName = getVarName(fn.name);
+		if (fnHaxeName != fn.name) {
+			fndefinition += '@:native(\'${fn.name}\') ';
 		}
 
 		// set function visibility
 		if (fn.visibility != null) {
 			fndefinition += '${fn.visibility} ';
+		}
+
+		// set final functions as final
+		if (fn.isFinal) {
+			fndefinition += 'final ';
 		}
 
 		// set abstract functions as abstract
@@ -205,7 +227,7 @@ class Run {
 
 		// function name, params, and return type
 		var args = fn.args.map(arg -> '${arg.isOptional ? '?' : ''}${getVarName(arg.name)}:${getType(arg.type)}').join(', ');
-		fndefinition += 'function ${fn.name}(${args}):${getType(fn.returnType)}';
+		fndefinition += 'function ${fnHaxeName}(${args}):${getType(fn.returnType)}';
 
 		// callsite of inline functions for PHP namespace or global functions
 		if (isNamespaceGlobal) {
@@ -293,14 +315,14 @@ class Run {
 
 		if (combinedNamespaces != null) {
 			var slashesRE = ~/\\/g;
-			var leadingDotRE = ~/^\./;
-			var packageRE = ~/^(.*\.)?([^\.]+)$/;
+			var packageRE = ~/^(([^\.]+\.)*)([^\.]+)$/;
 
 			for (nsName => namespace in combinedNamespaces) {
 				if (nsName != '') {
-					var p = slashesRE.replace(nsName.toLowerCase(), '.');
-					Sys.println('package ${basePackage}.${p};');
+					currentNamespace = slashesRE.replace(nsName.toLowerCase(), '.');
+					Sys.println('package ${basePackage}.${currentNamespace};');
 				} else {
+					currentNamespace = '';
 					Sys.println('package ${basePackage};');
 				}
 
@@ -322,21 +344,34 @@ class Run {
 					if (phpNS != '') {
 						phpNS += '\\\\';
 					}
-					var parent = leadingDotRE.replace(slashesRE.replace(cls.parent, '.'), '');
+					var parent = slashesRE.replace(cls.parent, '.');
 
 					var clsExtends = '';
 					if (parent != null && parent != '') {
-						var parentpkg = packageRE.replace(parent, '$1');
-						if (parentpkg != '') {
-							parentpkg = parentpkg.toLowerCase + '.';
+						var isAnchoredToRootNS = false;
+						if (parent.substr(0, 1) == '.') {
+							isAnchoredToRootNS = true;
+							parent = parent.substr(1);
 						}
-						parent = packageRE.replace(parent, '$2');
+						var parentpkg = packageRE.replace(parent.toLowerCase(), '$1');
+						parent = packageRE.replace(parent, '$3');
+						parent = parent.substr(0, 1).toUpperCase() + parent.substr(1);
+
+						if (!isAnchoredToRootNS && parentpkg != null && parentpkg != '') {
+							parentpkg = '${currentNamespace}.${parentpkg}';
+						} else if (!isAnchoredToRootNS) {
+							parentpkg = '${currentNamespace}';
+						}
+
 						clsExtends = ' extends ${basePackage}.${parentpkg}${parent}';
 					}
-					var imp = cls.interfaces.length > 0 ? ' implements ${cls.interfaces.join(', ')}' : '';
 
+					var interfaces = cls.interfaces.map(iface -> iface.substr(0, 1).toUpperCase() + iface.substr(1));
+					var imp = interfaces.length > 0 ? ' implements ${interfaces.join(' implements ')}' : '';
+
+					var n = cls.name.substr(0, 1).toUpperCase() + cls.name.substr(1);
 					Sys.println('@:native(\'\\\\' + phpNS + cls.name + '\')');
-					Sys.println('extern ${kwd} ${cls.name}${clsExtends}${imp} {');
+					Sys.println('extern ${kwd} ${n}${clsExtends}${imp} {');
 					for (c in cls.constants) {
 						if (c.visibility != VPrivate) {
 							Sys.println('    ' + getConst(c));
