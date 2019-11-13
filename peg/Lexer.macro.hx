@@ -44,7 +44,7 @@ class Lexer {
 		//For eval: execute `$ php path/to/lexer.php`
 		} else {
 			return macro @:pos(phpFile.pos) {
-				var result = tokenizeThroughPhp(phpFile, $v{lexerPhp});
+				var result = tokenizeThroughPhp($phpFile, $v{lexerPhp});
 				if(result.exitCode != 0) {
 					throw new PhpException('Failed to run php: ' + result.stderr);
 				}
