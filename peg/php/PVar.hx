@@ -8,6 +8,7 @@ class PVar {
 	public var visibility(default,null):Visibility = VPublic;
 	public var doc(default,null):String = '';
 	public var type(default,null):PType = TMixed;
+	public var isOptional(default,null):Bool = false;
 	/** If was parsed from `...$some` syntax */
 	public var isRestArg(default,null):Bool = false;
 

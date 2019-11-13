@@ -5,9 +5,12 @@ enum PType {
 	TFloat;
 	TString;
 	TBool;
-	TArray;
+	TArray(type:PType);
+	TObject(indexType:PType, valueType:PType);
 	TCallable;
 	TMixed;
+	TResource;
+	TVoid;
 	TClass(name:String);
 	TOr(types:ReadOnlyArray<PType>);
 }

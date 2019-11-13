@@ -9,6 +9,15 @@ import haxe.ds.ReadOnlyArray;
 using peg.parser.Tools;
 
 class Parser {
+	static inline var _singleWord = '[^\\s]+';
+	static inline var _objectOrArray = '(object|array)<.+>';
+	static var arrayTypeRE = ~/array<(.+)>/;
+	static var combinationTypeRE = ~/[^\s]+\|[^\s]+/;
+	static var objectTypeRE = ~/object<(.+?),(.+)>/;
+	static var docTagVarTypeRE = ~/@var\s+([^\s]+)/;
+	static var docTagParamsRE = ~/@param\s+([^\s]+)/;
+	static var docTagReturnTypeRE = ~/@return\s+([^\s]+)/;
+
 	final tokens:ReadOnlyArray<Token>;
 
 	public function new(tokens:ReadOnlyArray<Token>) {
@@ -207,17 +216,39 @@ class Parser {
 		return name;
 	}
 
+	function mapParsedType(type:String):PType {
+		if (type.substr(-2, 2) == '[]') {
+			return TArray(mapParsedType(type.substr(0, type.length - 2)));
+		} else if (objectTypeRE.match(type)) {
+			var indexType = objectTypeRE.matched(1);
+			var valueType = objectTypeRE.matched(2);
+			return TObject(mapParsedType(indexType), mapParsedType(valueType));
+		} else if (arrayTypeRE.match(type)) {
+			return TArray(mapParsedType(arrayTypeRE.matched(1)));
+		}
+		return switch(type.toLowerCase()) {
+			case 'int' | 'integer': TInt;
+			case 'float': TFloat;
+			case 'string': TString;
+			case 'bool' | 'boolean': TBool;
+			case 'array': TArray(TMixed);
+			case 'object': TObject(TString, TMixed);
+			case 'callable': TCallable;
+			case 'mixed': TMixed;
+			case 'resource': TResource;
+			case 'void': TVoid;
+			case _: TClass(type);
+		}
+	}
+
 	function parseType(ctx:Context):PType {
 		var token = ctx.stream.next();
 		return switch token.type {
-			case T_ARRAY: TArray;
+			case T_ARRAY: TArray(TMixed);
 			case T_CALLABLE: TCallable;
 			case T_STRING | T_NS_SEPARATOR:
 				ctx.stream.back();
-				switch(parseTypePath(ctx)) {
-					case 'string': TString;
-					case path: TClass(path);
-				}
+				mapParsedType(parseTypePath(ctx));
 			case _:
 				throw new UnexpectedTokenException(token);
 		}
@@ -318,6 +349,13 @@ class Parser {
 
 		parseArguments(ctx, fn);
 
+		if (fn.returnType == TMixed) {
+			var rt = parseDocTagReturnType(fn.doc);
+			if (rt != null) {
+				fn.returnType = rt;
+			}
+		}
+
 		//body
 		for (token in ctx.stream) {
 			switch token.type {
@@ -337,6 +375,98 @@ class Parser {
 		return fn;
 	}
 
+	function parseDocTagArrayObjectType(line:String):String {
+		var nparens = 0;
+		var indexType = '';
+		var type = 'array';
+
+		var idx = 0;
+		if (line.indexOf('array') != -1) {
+			idx = line.indexOf('array') + 5;
+		} else if (line.indexOf('object') != -1) {
+			idx = line.indexOf('object') + 6;
+		}
+
+		for (chr in idx...line.length) {
+			var theChar = line.charAt(chr);
+			switch (theChar) {
+				// We saw the start of a typed array
+				case '<':
+					nparens++;
+					indexType = '';
+				// We saw an index type as well as a value type
+				case ',':
+					if (indexType.toLowerCase() == 'int') {
+						type = type.substr(0, type.length - indexType.length);
+					} else {
+						type = type.substr(0, type.length - 6 - indexType.length) + 'object<${indexType},';
+					}
+					indexType = '';
+					continue;
+				// We saw the end of a typed array
+				case '>':
+					nparens--;
+					indexType = '';
+				case _:
+					indexType += theChar;
+			}
+			type += theChar;
+			if (nparens <= 0) {
+				break;
+			}
+		}
+
+		return type;
+	}
+
+	function parseDocTagType(?doc:String, re:EReg, ?paramName:String):Null<PType> {
+		var documentedType:Null<String> = null;
+
+		if (doc != null) {
+			for (line in doc.split('\n')) {
+				if (!re.match(line)) {
+					continue;
+				}
+
+				var type = re.matched(1);
+				if (~/(array|object)</.match(type)) {
+					type = parseDocTagArrayObjectType(line);
+				} else if (combinationTypeRE.match(type)) {
+					// TODO: Implement correct multiple-type parsing (type1|type2).
+					type = 'mixed';
+				}
+
+				if (paramName != null) {
+					var ereg = new EReg('@param\\s+(${_singleWord}|${_objectOrArray})\\s+${EReg.escape(paramName)}', '');
+					if (ereg.match(line)) {
+						documentedType = type;
+						break;
+					}
+				} else {
+					documentedType = type;
+					break;
+				}
+			}
+		}
+
+		if (documentedType != null) {
+			return mapParsedType(documentedType);
+		}
+		return null;
+	}
+
+	inline function parseDocTagVarOrConstType(?doc:String): Null<PType> {
+		return parseDocTagType(doc, docTagVarTypeRE);
+	}
+
+	inline function parseDocTagReturnType(?doc:String):Null<PType> {
+		return parseDocTagType(doc, docTagReturnTypeRE);
+	}
+
+	inline function parseDocTagParamType(?doc:String, paramName:String):Null<PType> {
+		return parseDocTagType(doc, docTagParamsRE, paramName);
+	}
+
 	function parseArguments(ctx:Context, fn:PFunction) {
 		function parseRestArg():PVar {
 			var v = parseVar(ctx, ctx.stream.expect(T_VARIABLE).value);
@@ -352,7 +482,14 @@ class Parser {
 					return;
 				//$argName
 				case T_VARIABLE:
-					fn.addArg(parseVar(ctx, token.value));
+					var v = parseVar(ctx, token.value);
+					if (v.type == TMixed) {
+						var t = parseDocTagParamType(fn.doc, v.name);
+						if (t != null) {
+							v.type = t;
+						}
+					}
+					fn.addArg(v);
 				//...$argName
 				case T_ELLIPSIS:
 					fn.addArg(parseRestArg());
@@ -369,6 +506,12 @@ class Parser {
 						case _: throw new UnexpectedTokenException(token);
 					}
 					v.type = type;
+					if (v.type == TMixed) {
+						var t = parseDocTagParamType(fn.doc, v.name);
+						if (t != null) {
+							v.type = t;
+						}
+					}
 					fn.addArg(v);
 			}
 		}
@@ -394,6 +537,12 @@ class Parser {
 					ctx.stream.expect(T_EQUAL);
 					//TODO: parse value to figure out constant type
 					ctx.stream.skipValue();
+					if (c.type == TMixed) {
+						var v = parseDocTagVarOrConstType(c.doc);
+						if (v != null) {
+							c.type = v;
+						}
+					}
 					constants.push(c);
 				case T_COMMA:
 				case T_SEMICOLON: break;
@@ -437,6 +586,13 @@ class Parser {
 				case T_EQUAL:
 					//TODO: parse value to figure out var type
 					ctx.stream.skipValue();
+					v.isOptional = true;
+					if (v.type == TMixed) {
+						var t = parseDocTagVarOrConstType(v.doc);
+						if (t != null) {
+							v.type = t;
+						}
+					}
 				case _:
 					throw new UnexpectedTokenException(token);
 			}
