@@ -141,7 +141,11 @@ class Run {
 						'php.xml.${name}';
 					// All other/unknown classes
 					case 'self':
-						currentClass;
+						if (basePackage != null && basePackage != '') {
+							'${basePackage}.${currentClass}';
+						} else {
+							currentClass;
+						}
 					case className:
 						if (basePackage != null && basePackage != '') {
 							'${basePackage}.${className}';
