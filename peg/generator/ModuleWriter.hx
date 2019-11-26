@@ -72,12 +72,9 @@ class ModuleWriter {
 
 	public inline function toString():String {
 		inline function join(word:String, arr:Array<String>):String {
-			var str = arr.map(s -> '$word $s').join(' ');
-			if(arr.length > 0) {
-				str = ' $str ';
-			}
-			return str;
+			return arr.length == 0 ? '' : ' ' + arr.map(s -> '$word $s').join(' ');
 		}
+
 		var extendsStr = join('extends', extendsTypes);
 		var implementsStr = join('implements', implementsInterfaces);
 
@@ -89,7 +86,7 @@ class ModuleWriter {
 		return
 'package $pack;
 $importsStr
-$doc${meta.join('')}$finalStr$typeKind $typeName $extendsStr$implementsStr{
+$doc${meta.join('')}$finalStr$typeKind $typeName$extendsStr$implementsStr {
 
 }';
 	}

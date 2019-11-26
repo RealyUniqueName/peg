@@ -1,10 +1,5 @@
--cp test/src
 -lib safety
 -lib exception
 -D analyzer-optimize
 --macro nullSafety('peg', Strict)
--main test.TestAll
-
-# -lib hxnodejs
-#-D js-es=6
-# -js bin/test.js
+-main peg.Peg

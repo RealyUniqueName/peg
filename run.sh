@@ -1,2 +1,3 @@
 #!/bin/bash
-haxe php.hxml && php bin/php/index.php
+haxe php.hxml
+php bin/php/index.php $@

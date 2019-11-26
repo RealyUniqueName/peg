@@ -38,6 +38,7 @@ class NamespaceGenerator {
 		hx.isFinal = cls.isFinal;
 		hx.isTrait = cls.isTrait;
 		hx.isInterface = cls.isInterface;
+		hx.doc = cls.doc;
 
 		hx.native = '$phpNamespaceStr\\${cls.name}';
 

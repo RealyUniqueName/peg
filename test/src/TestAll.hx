@@ -1,10 +1,12 @@
-package test;
-
 import peg.Generator;
 import peg.PegException;
 
 class TestAll {
-	static public function main() {
+	// static public function main() {
+	// 	trace(Sys.args());
+	// }
+
+	static function main() {
 		var cnt = 0;
 		Sys.print('');
 		var allNamespaces = [];

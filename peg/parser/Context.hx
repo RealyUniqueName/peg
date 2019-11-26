@@ -25,7 +25,7 @@ class Context {
 			case null:
 				var ns = new PNamespace('');
 				_namespaces.push(ns);
-				ns;
+				currentNamespace = ns;
 			case ns: ns;
 		}
 	}
