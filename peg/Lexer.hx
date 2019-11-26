@@ -8,37 +8,17 @@ import haxe.Json;
 import sys.io.Process;
 
 class Lexer {
-	static inline var LEXER_PHP = 'lexer.php';
-
 	public final tokens:ReadOnlyArray<Token>;
 
 	public function new(phpCode:String) {
 		tokens = tokenize(phpCode);
 	}
 
+	macro static function lex(phpFile:haxe.macro.Expr):haxe.macro.Expr.ExprOf<Array<Any>>;
+
 	static function tokenize(phpFile:String):Array<Token> {
 
-		var rawTokens:Array<Any>;
-		#if php
-			php.Global.require_once(LEXER_PHP);
-			var stderr:Null<String> = null;
-			var phpTokens:php.NativeIndexedArray<php.NativeIndexedArray<Any>> = try {
-				php.Syntax.code('tokenize({0})', phpFile);
-			} catch(e:php.Throwable) {
-				throw new PegException('Failed to tokenize: ${e.getMessage()}');
-			}
-			rawTokens = [for (t in phpTokens) php.Lib.toHaxeArray(t)];
-		#else
-			var result = tokenizeThroughPhp(phpFile, LEXER_PHP);
-			if(result.exitCode != 0) {
-				throw new PhpException('Failed to run php: ${result.stderr}');
-			}
-			rawTokens = try {
-				Json.parse(result.stdout);
-			} catch(e:Dynamic) {
-				throw new PegException('Failed to parse json: ${result.stdout}', Exception.wrapWithStack(e));
-			}
-		#end
+		var rawTokens:Array<Any> = lex(phpFile);
 		// trace(rawTokens.map(Std.string).join('\n'));
 		return rawTokens.map(tokenData -> new Token(tokenData));
 	}
