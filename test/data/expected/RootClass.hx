@@ -4,7 +4,7 @@ package ;
  * Class comment
  */
 @:native("\\RootClass")
-class RootClass {
+extern class RootClass {
 	/**
 	 * Const comment
 	 */

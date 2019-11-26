@@ -9,7 +9,7 @@ enum abstract TypeKind(String) to String {
 
 class ModuleWriter {
 
-	public var doc:String = '';
+	public var doc(default,set):String = '';
 	public var native(never,set):String;
 	public var isTrait(never,set):Bool;
 	public var isInterface(never,set):Bool;
@@ -70,6 +70,11 @@ class ModuleWriter {
 		return v;
 	}
 
+	inline function set_doc(s:String):String {
+		doc = '$s\n';
+		return s;
+	}
+
 	public inline function toString():String {
 		inline function join(word:String, arr:Array<String>):String {
 			return arr.length == 0 ? '' : ' ' + arr.map(s -> '$word $s').join(' ');
@@ -86,7 +91,7 @@ class ModuleWriter {
 		return
 'package $pack;
 $importsStr
-$doc${meta.join('')}$finalStr$typeKind $typeName$extendsStr$implementsStr {
+$doc${meta.join('')}extern $finalStr$typeKind $typeName$extendsStr$implementsStr {
 
 }';
 	}
