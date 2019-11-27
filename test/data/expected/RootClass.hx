@@ -9,6 +9,7 @@ extern class RootClass {
 	 * Const comment
 	 */
 	@:phpClassConst static final TYPE_ONE:Int;
+
 	@:phpClassConst static final TYPE_ZERO:Int;
 
 	/**

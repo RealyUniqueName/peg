@@ -9,28 +9,38 @@ class TestAll {
 		var phpDir = 'test/data/php';
 		var outDir = 'bin/generated';
 		var expectedDir = 'test/data/expected';
-		Sys.println('Generating externs of the test data from $phpDir...');
+		var diffOnFail = Sys.args().indexOf('--diff') >= 0;
+		if(!diffOnFail) {
+			Sys.println('Use --diff to automatically show diff of expected/actual on failure');
+		}
+		Sys.println('Generating externs of the test data from $phpDir');
 		var exitCode = Sys.command('php', [pegPhp, '--php', phpDir, '--out', outDir]);
 		if(exitCode != 0) {
 			Sys.stderr().writeString('Failed to generate externs.\n');
 			Sys.exit(exitCode);
 		}
 
-		Sys.println('Validating generated externs against expected result from $expectedDir...');
+		Sys.println('Validating generated externs against expected result from $expectedDir');
 		var success = true;
-		for(relative => absolute in findHxFiles(expectedDir)) {
-			var expectedContent = absolute.getContent();
+		for(relative => expectedPath in findHxFiles(expectedDir)) {
+			var expectedContent = expectedPath.getContent();
 			var actualPath = Path.join([outDir, relative]);
 			var actualContent = actualPath.getContent();
 			if(expectedContent != actualContent) {
 				success = false;
 				Sys.stderr().writeString('Generated content does not match expected content for file $relative\n');
 				Sys.stderr().flush();
-				Sys.command('git', ['diff', '--no-index', absolute, actualPath]);
+				if(diffOnFail) {
+					Sys.command('git', ['diff', '--no-index', expectedPath, actualPath]);
+				}
 			}
 		}
+
 		if(!success) {
+			Sys.stderr().writeString('FAIL\n');
 			Sys.exit(1);
+		} else {
+			Sys.println('SUCCESS');
 		}
 	}
 

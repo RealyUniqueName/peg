@@ -1,7 +1,9 @@
 package peg.generator;
 
 import peg.php.PNamespace;
-import peg.generator.ModuleWriter.TypeKind;
+import peg.generator.writers.ModuleWriter;
+import peg.generator.writers.ClassConstWriter;
+import peg.generator.writers.VarWriter;
 import peg.php.PClass;
 import peg.generator.NamespaceTree.Node;
 
@@ -64,6 +66,23 @@ class NamespaceGenerator {
 			}
 		}
 
-		gen.writeModule(haxePackage, hxName,  hx.toString());
+		for (phpConst in cls.constants) {
+			if(phpConst.visibility == VPrivate) continue;
+			var hxVar = new ClassConstWriter(phpConst.name);
+			hxVar.doc = phpConst.doc;
+			hxVar.isPrivate = phpConst.visibility == VProtected;
+			hx.fields.push(hxVar);
+		}
+
+		for (phpVar in cls.vars) {
+			if(phpVar.visibility == VPrivate) continue;
+			var hxVar = new VarWriter(phpVar.name);
+			hxVar.doc = phpVar.doc;
+			hxVar.isPrivate = phpVar.visibility == VProtected;
+			hxVar.isStatic = phpVar.isStatic;
+			hx.fields.push(hxVar);
+		}
+
+		gen.writeModule(haxePackage, hxName, hx.toString());
 	}
 }

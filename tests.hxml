@@ -1,9 +1,11 @@
+php.hxml
+
+--next
+
 -cp test/src
 -lib safety
 -lib exception
 -D analyzer-optimize
 --macro nullSafety('TestAll', Strict)
 
--main TestAll
-
---interp
+--run TestAll
