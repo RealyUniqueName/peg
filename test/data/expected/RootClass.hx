@@ -1,5 +1,7 @@
 package ;
 
+import php.SplQueue;
+
 /**
  * Class comment
  */

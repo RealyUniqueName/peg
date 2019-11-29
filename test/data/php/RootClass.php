@@ -3,6 +3,8 @@
  * File comment
  */
 
+use SplQueue;
+
 /**
  * Class comment
  */

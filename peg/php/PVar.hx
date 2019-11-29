@@ -10,6 +10,8 @@ class PVar {
 	public var type(default,null):PType = TMixed;
 	/** If was parsed from `...$some` syntax */
 	public var isRestArg(default,null):Bool = false;
+	/** if this var has an initial value */
+	public var hasValue(default,null):Bool = false;
 
 
 	function new(name:String) {

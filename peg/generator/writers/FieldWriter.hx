@@ -1,7 +1,7 @@
 package peg.generator.writers;
 
 class FieldWriter extends SymbolWriter {
-	public var type:String = 'Any';
+	public var type:HxType = HxType.ANY;
 	public var isStatic(never,set):Bool;
 	public var isPrivate(never,set):Bool;
 
@@ -19,12 +19,4 @@ class FieldWriter extends SymbolWriter {
 		setAccessor('static', v);
 		return v;
 	}
-
-	// override function set_doc(s:String):String {
-	// 	super.set_doc(s);
-	// 	if(doc != '') {
-	// 		doc = '$indentation$doc';
-	// 	}
-	// 	return s;
-	// }
 }

@@ -29,7 +29,14 @@ class ModuleWriter extends SymbolWriter {
 	}
 
 	public function addImport(typePath:PhpTypePath, alias:Null<String>) {
-		imports.push(alias == null ? typePath : '$typePath as $alias');
+		var importStr = alias == null ? typePath : '$typePath as $alias';
+		for(i in 0...imports.length) {
+			if(imports[i] == importStr) {
+				imports.splice(i, 1);
+				break;
+			}
+		}
+		imports.push(importStr);
 	}
 
 	public function addExtends(typePath:PhpTypePath) {

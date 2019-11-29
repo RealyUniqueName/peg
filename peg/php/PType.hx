@@ -1,6 +1,7 @@
 package peg.php;
 
 enum PType {
+	TNull;
 	TInt;
 	TFloat;
 	TString;

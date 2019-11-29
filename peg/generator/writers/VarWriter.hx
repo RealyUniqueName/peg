@@ -1,11 +1,17 @@
 package peg.generator.writers;
 
+import peg.php.PVar;
 using StringTools;
 
 class VarWriter extends FieldWriter {
 
-	public function new(name:String) {
-		super(name.startsWith("$") ? name.substr(1) : name);
+	static public function fromPhpVar(phpVar:PVar, module:ModuleWriter):VarWriter {
+		var hxVar = new VarWriter(phpVar.name);
+		hxVar.doc = phpVar.doc;
+		hxVar.isPrivate = phpVar.visibility == VProtected;
+		hxVar.isStatic = phpVar.isStatic;
+		hxVar.type = HxType.fromPType(phpVar.type, module);
+		return hxVar;
 	}
 
 	override function toString():String {

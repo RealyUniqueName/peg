@@ -435,6 +435,7 @@ class Parser {
 					break;
 				//default value
 				case T_EQUAL:
+					v.hasValue = true;
 					//TODO: parse value to figure out var type
 					ctx.stream.skipValue();
 				case _:

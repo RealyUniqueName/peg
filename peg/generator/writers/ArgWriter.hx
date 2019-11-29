@@ -13,12 +13,12 @@ class SymbolWriter {
 
 	var indentation:String = '';
 
-	final name:HxIdent;
+	final name:String;
 	final accessors:Array<String> = [];
 	final meta:Array<String> = [];
 
-	public function new(name:HxIdent) {
-		this.name = name;
+	public function new(name:String) {
+		this.name = (name.charAt(0) == "$" ? name.substr(1) : name);
 	}
 
 	/**
