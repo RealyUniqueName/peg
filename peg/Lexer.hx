@@ -1,7 +1,6 @@
 package peg;
 
 import haxe.io.Eof;
-import haxe.Exception;
 import haxe.io.Error;
 import haxe.io.BytesBuffer;
 import haxe.Json;
@@ -44,7 +43,7 @@ class Lexer {
 				} catch(e:Error) {
 					switch e {
 						case Blocked:
-						case e: throw Exception.wrapWithStack(e);
+						case e: throw new PegException(Std.string(e));
 					}
 				} catch(e:Eof) {
 					break;

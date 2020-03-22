@@ -4,7 +4,6 @@ php.hxml
 
 -cp test/src
 -lib safety
--lib exception
 -D analyzer-optimize
 --macro nullSafety('TestAll', Strict)
 

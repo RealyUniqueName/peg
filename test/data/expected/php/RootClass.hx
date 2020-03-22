@@ -1,6 +1,4 @@
-package ;
-
-import php.SplQueue;
+package php;
 
 /**
  * Class comment
@@ -10,9 +8,15 @@ extern class RootClass {
 	/**
 	 * Const comment
 	 */
-	@:phpClassConst static final TYPE_ONE:Int;
+	@:phpClassConst static final TYPE_INT:Int;
 
-	@:phpClassConst static final TYPE_ZERO:Int;
+	@:phpClassConst static final TYPE_FLOAT:Float;
+
+	@:phpClassConst static final TYPE_SQ_STR:String;
+
+	@:phpClassConst static final TYPE_DQ_STR:String;
+
+	@:phpClassConst static final TYPE_BOOL:Bool;
 
 	/**
 	 * Static var doc block
@@ -20,6 +24,13 @@ extern class RootClass {
 	 * @var bool
 	 */
 	static var staticVarName:Bool;
+
+	/**
+	 * Static var doc block
+	 *
+	 * @var null|string
+	 */
+	static var staticNullable:Null<String>;
 
 	/**
 	 * Decodes something

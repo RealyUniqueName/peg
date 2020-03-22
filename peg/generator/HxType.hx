@@ -16,7 +16,9 @@ abstract HxType(String) to String {
 			case TArray: 'Array<$ANY>';
 			case TCallable: 'haxe.Constraints.Function';
 			case TMixed: ANY;
-			case TClass(name): name;
+			case TClass(name):
+				module.confirmImport(name);
+				name;
 			case TOr(types): fromTOr(types, module);
 		}
 		return new HxType(s);

@@ -1,7 +1,5 @@
 package peg.generator.writers;
 
-import haxe.Exception;
-
 using StringTools;
 
 class SymbolWriter {
@@ -62,6 +60,6 @@ class SymbolWriter {
 	}
 
 	public function toString():String {
-		throw new Exception('Not implemented');
+		throw new PegException('Not implemented');
 	}
 }

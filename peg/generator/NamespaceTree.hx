@@ -1,6 +1,5 @@
 package peg.generator;
 
-import haxe.Exception;
 import peg.php.*;
 
 using StringTools;

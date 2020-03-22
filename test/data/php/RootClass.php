@@ -3,7 +3,7 @@
  * File comment
  */
 
-use SplQueue;
+use some\UsedInMethodBodies;
 
 /**
  * Class comment
@@ -13,8 +13,11 @@ class RootClass
     /**
      * Const comment
      */
-    const TYPE_ONE  = 1;
-    const TYPE_ZERO = 0;
+    const TYPE_INT = 1;
+    const TYPE_FLOAT = 1.5;
+    const TYPE_SQ_STR = 'hello';
+    const TYPE_DQ_STR = "world";
+    const TYPE_BOOL = true;
 
     /**
      * Static var doc block
@@ -22,6 +25,12 @@ class RootClass
      * @var bool
      */
     public static $staticVarName = false;
+    /**
+     * Static var doc block
+     *
+     * @var null|string
+     */
+    public static $staticNullable = null;
 
     /**
      * Decodes something
@@ -32,7 +41,7 @@ class RootClass
      * @return mixed
      * @throws RuntimeException
      */
-    public static function decode($encodedValue, $objectDecodeType = self::TYPE_ONE)
+    public static function decode(string $encodedValue, $objectDecodeType = self::TYPE_INT)
     {
         return json_decode($encodedValue);
     }
@@ -52,6 +61,13 @@ class RootClass
      */
     private static function staticPrivateMethod()
     {
-
+        while(true) {
+            switch(10) {
+                case 12:
+                    throw new UsedInMethodBodies('oops');
+                default:
+                    break 2;
+            }
+        }
     }
 }

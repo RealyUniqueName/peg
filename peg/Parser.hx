@@ -223,6 +223,48 @@ class Parser {
 		}
 	}
 
+	/**
+	 * Parses a constant value and tries to resolve its type.
+	 */
+	static public function parseTypeFromConstValue(ctx:Context):PType {
+		var token = ctx.stream.next();
+		inline function skipToSeparator() {
+			ctx.stream.skipTo([T_COMMA, T_SEMICOLON, T_RIGHT_PARENTHESIS]);
+			ctx.stream.back();
+		}
+		return switch token.type {
+			case T_LEFT_SQUARE:
+				ctx.stream.skipBalancedTo(T_RIGHT_SQUARE);
+				TArray;
+			case T_LEFT_PARENTHESIS:
+				ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
+				TMixed;
+			case T_ARRAY:
+				ctx.stream.expect(T_LEFT_PARENTHESIS);
+				ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
+				TArray;
+			case T_LNUMBER:
+				skipToSeparator();
+				TInt;
+			case T_DNUMBER:
+				skipToSeparator();
+				TFloat;
+			case T_CONSTANT_ENCAPSED_STRING:
+				skipToSeparator();
+				TString;
+			case T_STRING:
+				skipToSeparator();
+				switch token.value.toLowerCase() {
+					case 'false' | 'true': TBool;
+					case 'null': TOr([TNull, TMixed]);
+					case _: TMixed;
+				}
+			case _:
+				skipToSeparator();
+				TMixed;
+		}
+	}
+
 	function parseClass(ctx:Context):PClass {
 		var token = ctx.stream.next();
 		var name = switch token.type {
@@ -393,7 +435,7 @@ class Parser {
 					}
 					ctx.stream.expect(T_EQUAL);
 					//TODO: parse value to figure out constant type
-					ctx.stream.skipValue();
+					c.type = parseTypeFromConstValue(ctx);
 					constants.push(c);
 				case T_COMMA:
 				case T_SEMICOLON: break;
@@ -436,8 +478,7 @@ class Parser {
 				//default value
 				case T_EQUAL:
 					v.hasValue = true;
-					//TODO: parse value to figure out var type
-					ctx.stream.skipValue();
+					v.type = parseTypeFromConstValue(ctx);
 				case _:
 					throw new UnexpectedTokenException(token);
 			}

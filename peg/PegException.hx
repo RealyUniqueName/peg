@@ -1,6 +1,20 @@
 package peg;
 
+#if (haxe >= version('4.1.0-rc.1'))
 class PegException extends haxe.Exception {}
+#else
+class PegException {
+	public var message(default,null):String;
+
+	public function new(msg:String) {
+		this.message = msg;
+	}
+
+	public function toString():String {
+		return this.message;
+	}
+}
+#end
 
 /**
  * Failures on running php interpreter.

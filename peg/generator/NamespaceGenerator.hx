@@ -21,7 +21,7 @@ class NamespaceGenerator {
 		this.gen = gen;
 		phpNamespace = node.getNamespace();
 		phpNamespaceStr = phpNamespace.join('\\');
-		haxePackage = phpNamespace.map(s -> s.toLowerCase());
+		haxePackage = phpNamespace.length == 0 ? ['php'] : phpNamespace.map(s -> s.toLowerCase());
 		haxePackageStr = haxePackage.join('.');
 	}
 

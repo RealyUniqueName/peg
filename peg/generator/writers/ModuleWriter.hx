@@ -19,7 +19,7 @@ class ModuleWriter extends SymbolWriter {
 
 	var typeKind:TypeKind = TKClass;
 
-	final imports:Array<String> = [];
+	final imports:Array<{type:String, alias:Null<String>, confirmedForExtern:Bool}> = [];
 	final implementsInterfaces:Array<String> = [];
 	final extendsTypes:Array<String> = [];
 
@@ -28,22 +28,28 @@ class ModuleWriter extends SymbolWriter {
 		this.pack = pack;
 	}
 
-	public function addImport(typePath:PhpTypePath, alias:Null<String>) {
-		var importStr = alias == null ? typePath : '$typePath as $alias';
+	public function addImport(typePath:HxImportTypePath, alias:Null<String>) {
 		for(i in 0...imports.length) {
-			if(imports[i] == importStr) {
-				imports.splice(i, 1);
-				break;
+			if(imports[i].type == typePath && imports[i].alias == alias) {
+				return;
 			}
 		}
-		imports.push(importStr);
+		imports.push({type:typePath, alias:alias, confirmedForExtern:false});
 	}
 
-	public function addExtends(typePath:PhpTypePath) {
+	public function confirmImport(name:String) {
+		for (item in imports) {
+			if(item.alias == name || (item.alias == null && item.type == name)) {
+				item.confirmedForExtern = true;
+			}
+		}
+	}
+
+	public function addExtends(typePath:HxTypePath) {
 		extendsTypes.push(typePath);
 	}
 
-	public function addImplements(typePath:PhpTypePath) {
+	public function addImplements(typePath:HxTypePath) {
 		implementsInterfaces.push(typePath);
 	}
 
@@ -70,8 +76,13 @@ class ModuleWriter extends SymbolWriter {
 		var extendsStr = keywordJoin('extends', extendsTypes);
 		var implementsStr = keywordJoin('implements', implementsInterfaces);
 
-		var importsStr = imports.map(s -> 'import $s;\n').join('');
-		if(imports.length > 0) {
+		var importsStr = imports.filter(i -> i.confirmedForExtern)
+			.map(i -> {
+				var s = i.alias == null ? i.type : '${i.type} as ${i.alias}';
+				'import $s;\n';
+			})
+			.join('');
+		if(importsStr.length > 0) {
 			importsStr = '\n$importsStr';
 		}
 
