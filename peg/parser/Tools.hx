@@ -1,7 +1,8 @@
 package peg.parser;
 
 using peg.parser.Tools;
-using StringTools;
+
+typedef StdStringTools = StringTools;
 
 class Tools {
 	static public function expect(stream:TokenStream, type:TokenType):Token {

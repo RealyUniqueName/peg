@@ -50,4 +50,5 @@ extern class RootClass {
 	 * @return void
 	 */
 	private static function staticProtectedMethod(queue:SplQueue):Void;
+
 }

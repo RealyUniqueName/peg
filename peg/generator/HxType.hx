@@ -13,8 +13,11 @@ abstract HxType(String) to String {
 			case TFloat: 'Float';
 			case TString: 'String';
 			case TBool: 'Bool';
-			case TArray: 'Array<$ANY>';
+			case TVoid: 'Void';
+			case TArray(type): 'Array<${fromPType(type, module)}>';
 			case TCallable: 'haxe.Constraints.Function';
+			case TIterable: 'Any'; //TODO: make a proper Haxe type for this
+			case TObject: '{}';
 			case TMixed: ANY;
 			case TClass(name):
 				module.confirmImport(name);

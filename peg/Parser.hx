@@ -2,6 +2,7 @@ package peg;
 
 import peg.parser.*;
 import peg.php.*;
+import peg.php.PType;
 import peg.php.PUse;
 import peg.php.Visibility;
 import haxe.ds.ReadOnlyArray;
@@ -210,16 +211,53 @@ class Parser {
 	function parseType(ctx:Context):PType {
 		var token = ctx.stream.next();
 		return switch token.type {
-			case T_ARRAY: TArray;
+			case T_ARRAY: TArray(TMixed);
 			case T_CALLABLE: TCallable;
 			case T_STRING | T_NS_SEPARATOR:
 				ctx.stream.back();
-				switch(parseTypePath(ctx)) {
-					case 'string': TString;
-					case path: TClass(path);
-				}
+				parseTypeString(parseTypePath(ctx));
 			case _:
 				throw new UnexpectedTokenException(token);
+		}
+	}
+
+	function parseTypeString(str:String):PType {
+		var types = [];
+		var done = false;
+		while(!done && str.trim().length > 0) {
+			var orPos = str.indexOf('|');
+			var type = if(orPos < 0) {
+				done = true;
+				str;
+			} else {
+				var t = str.substr(0, orPos);
+				str = str.substr(orPos + 1);
+				t;
+			}
+			var bracketPos = type.lastIndexOf('[');
+			if(bracketPos > 0) {
+				types.push(TArray(parseTypeString(type.substr(0, bracketPos))));
+			} else {
+				types.push(switch(type) {
+					case 'null': TNull;
+					case 'array': TArray(TMixed);
+					case 'string': TString;
+					case 'int' | 'integer': TInt;
+					case 'float': TFloat;
+					case 'bool' | 'boolean': TBool;
+					case 'iterable': TIterable;
+					case 'callable': TCallable;
+					case 'object': TObject;
+					case 'void': TVoid;
+					case '' | 'mixed': TMixed;
+					case _: TClass(type);
+				});
+			}
+		}
+		return switch types {
+			case []: TMixed;
+			case [type]: type;
+			case _: TOr(types);
 		}
 	}
 
@@ -234,15 +272,27 @@ class Parser {
 		}
 		return switch token.type {
 			case T_LEFT_SQUARE:
-				ctx.stream.skipBalancedTo(T_RIGHT_SQUARE);
-				TArray;
+				if(ctx.stream.next().type == T_RIGHT_SQUARE) {
+					TArray(TMixed);
+				} else {
+					ctx.stream.back();
+					var itemType = parseTypeFromConstValue(ctx);
+					ctx.stream.skipBalancedTo(T_RIGHT_SQUARE);
+					TArray(itemType);
+				}
 			case T_LEFT_PARENTHESIS:
 				ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
 				TMixed;
 			case T_ARRAY:
 				ctx.stream.expect(T_LEFT_PARENTHESIS);
-				ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
-				TArray;
+				if(ctx.stream.next().type == T_RIGHT_PARENTHESIS) {
+					TArray(TMixed);
+				} else {
+					ctx.stream.back();
+					var itemType = parseTypeFromConstValue(ctx);
+					ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
+					TArray(itemType);
+				}
 			case T_LNUMBER:
 				skipToSeparator();
 				TInt;
@@ -347,18 +397,34 @@ class Parser {
 
 		for(token in ctx.consumeStoredTokens()) {
 			switch token.type {
-				case T_DOC_COMMENT: fn.doc = token.value;
 				case T_ABSTRACT: fn.isAbstract = true;
 				case T_FINAL: fn.isFinal = true;
 				case T_PUBLIC: fn.visibility = VPublic;
 				case T_PROTECTED: fn.visibility = VProtected;
 				case T_PRIVATE: fn.visibility = VPrivate;
 				case T_STATIC: fn.isStatic = true;
+				case T_DOC_COMMENT: fn.doc = token.value;
 				case _: throw new UnexpectedTokenException(token);
 			}
 		}
 
 		parseArguments(ctx, fn);
+
+		if(fn.doc.length > 0) {
+			var doc = DocBlock.parse(fn.doc, parseTypeString);
+			switch doc.returnType {
+				case null:
+				case type: fn.returnType = type;
+			}
+			for(param in doc.params) {
+				for(arg in fn.args) {
+					if(arg.name == param.name) {
+						arg.type = param.type;
+						break;
+					}
+				}
+			}
+		}
 
 		//body
 		for (token in ctx.stream) {
@@ -481,6 +547,14 @@ class Parser {
 					v.type = parseTypeFromConstValue(ctx);
 				case _:
 					throw new UnexpectedTokenException(token);
+			}
+		}
+
+		if(v.doc.length > 0) {
+			var doc = DocBlock.parse(v.doc, parseTypeString);
+			switch doc.varType {
+				case null:
+				case type: v.type = type;
 			}
 		}
 
