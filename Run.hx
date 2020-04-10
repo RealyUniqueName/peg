@@ -1,3 +1,4 @@
+import sys.FileSystem;
 import haxe.io.Path;
 import peg.PegException;
 
@@ -248,7 +249,7 @@ class Run {
 
 	static function usage() {
 		Sys.println('USAGE:');
-		Sys.println('   php index.php <base-package-name> <file-or-dir-to-externalize> [--ignore <path(s)>]');
+		Sys.println('   php index.php <base-package-name> <file-or-dir-to-externalize> [--outputDir <path>] [--ignore <path(s)>]');
 	}
 
 	static function main() {
@@ -256,14 +257,8 @@ class Run {
 		var basePackage = args[0];
 		var path = args[1];
 
+		var outputDir = '.';
 		var ignorePaths:Array<String> = [];
-
-		if (args[2] == '--ignore') {
-			ignorePaths = args.slice(3);
-		}
-
-		ignorePaths = ignorePaths.map(ip -> Path.isAbsolute(ip) ? ip :
-			Path.normalize(Path.join([Sys.getCwd(), path, ip])));
 
 		if (basePackage == null || basePackage == '') {
 			usage();
@@ -271,6 +266,30 @@ class Run {
 		}
 
 		Run.basePackage = basePackage;
+
+		if (path == null || path == '') {
+			usage();
+			return;
+		}
+
+		var i = 2;
+		while(i < args.length) {
+			switch (args[i++]) {
+				case '--outputDir' | '--outputdir':
+					outputDir = args[i++];
+				case '--ignore':
+					ignorePaths = args.slice(i);
+					break;
+				case _:
+					usage();
+					return;
+			}
+		}
+
+		FileSystem.createDirectory(outputDir);
+
+		ignorePaths = ignorePaths.map(ip -> Path.isAbsolute(ip) ? ip :
+			Path.normalize(Path.join([Sys.getCwd(), path, ip])));
 
 		var combinedNamespaces:Map<String, peg.php.PNamespace> = [];
 		for(file in new peg.SourcesIterator(path)) {
@@ -315,26 +334,41 @@ class Run {
 
 		if (combinedNamespaces != null) {
 			var slashesRE = ~/\\/g;
+			var replaceDotsRE = ~/\./g;
 			var packageRE = ~/^(([^\.]+\.)*)([^\.]+)$/;
 
 			for (nsName => namespace in combinedNamespaces) {
+				var packageDir = outputDir;
+				var packageName = '';
 				if (nsName != '') {
 					currentNamespace = slashesRE.replace(nsName.toLowerCase(), '.');
-					Sys.println('package ${basePackage}.${currentNamespace};');
+					packageDir = Path.join(
+						[outputDir]
+						.concat(replaceDotsRE.split(basePackage))
+						.concat(slashesRE.split(nsName.toLowerCase())));
+					packageName = '${basePackage}.${currentNamespace}';
 				} else {
 					currentNamespace = '';
-					Sys.println('package ${basePackage};');
+					packageDir = Path.join([outputDir, basePackage]);
+					packageName = basePackage;
+				}
+
+				if (!FileSystem.exists(packageDir)) {
+					FileSystem.createDirectory(packageDir);
 				}
 
 				if (namespace.constants.length > 0 || namespace.functions.length > 0) {
-					Sys.println('extern class GLOBALS {');
+					// write out the globals class file
+					var globalsDefinition = 'package ${packageName};\nextern class GLOBALS {';
 					for (c in namespace.constants) {
-						Sys.println('    ' + getConst(c));
+						globalsDefinition += '\n    ' + getConst(c);
 					}
 					for (fn in namespace.functions) {
-						Sys.println('    ' + getFunction(fn, true, namespace.name));
+						globalsDefinition += '\n    ' + getFunction(fn, true, namespace.name);
 					}
-					Sys.println('}');
+					globalsDefinition += '\n}';
+					globalsDefinition += '\n'; // end file on empty new line
+					sys.io.File.saveContent(Path.join([packageDir, 'GLOBALS.hx']), globalsDefinition);
 				}
 
 				for (cls in namespace.classes) {
@@ -369,25 +403,29 @@ class Run {
 					var interfaces = cls.interfaces.map(iface -> iface.substr(0, 1).toUpperCase() + iface.substr(1));
 					var imp = interfaces.length > 0 ? ' implements ${interfaces.join(' implements ')}' : '';
 
+					// write out the class file
+					var classDefinition = 'package ${packageName};';
 					var n = cls.name.substr(0, 1).toUpperCase() + cls.name.substr(1);
-					Sys.println('@:native(\'\\\\' + phpNS + cls.name + '\')');
-					Sys.println('extern ${kwd} ${n}${clsExtends}${imp} {');
+					classDefinition += '\n@:native(\'\\\\' + phpNS + cls.name + '\')';
+					classDefinition += '\nextern ${kwd} ${n}${clsExtends}${imp} {';
 					for (c in cls.constants) {
 						if (c.visibility != VPrivate) {
-							Sys.println('    ' + getConst(c));
+							classDefinition += '\n    ' + getConst(c);
 						}
 					}
 					for (v in cls.vars) {
 						if (v.visibility != VPrivate) {
-							Sys.println('    ' + getVar(v));
+							classDefinition += '\n    ' + getVar(v);
 						}
 					}
 					for (fn in cls.functions) {
 						if (fn.visibility != VPrivate) {
-							Sys.println('    ' + getFunction(fn));
+							classDefinition += '\n    ' + getFunction(fn);
 						}
 					}
-					Sys.println('}');
+					classDefinition += '\n}\n';
+					classDefinition += '\n'; // end file on empty new line
+					sys.io.File.saveContent(Path.join([packageDir, '${n}.hx']), classDefinition);
 				}
 			}
 		}
