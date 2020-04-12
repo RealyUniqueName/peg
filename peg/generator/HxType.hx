@@ -14,7 +14,9 @@ abstract HxType(String) to String {
 			case TString: 'String';
 			case TBool: 'Bool';
 			case TVoid: 'Void';
-			case TArray(type): 'Array<${fromPType(type, module)}>';
+			case TArray(type):
+				module.addImport('\\NativeArray', null, true);
+				'NativeArray<${fromPType(type, module)}>';
 			case TCallable: 'haxe.Constraints.Function';
 			case TIterable: 'Any'; //TODO: make a proper Haxe type for this
 			case TObject: '{}';

@@ -3,4 +3,5 @@ common.hxml
 # -lib jstack
 # -D JSTACK_FORCE
 # -D JSTACK_FORMAT=vscode
+-D real-position
 -php bin/php

@@ -1,4 +1,6 @@
 -lib safety
 -D analyzer-optimize
---macro nullSafety('peg', Strict)
+--macro nullSafety('peg')
+# This causes https://github.com/HaxeFoundation/haxe/issues/9287
+# --macro nullSafety('peg', Strict)
 -main peg.Peg

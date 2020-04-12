@@ -1,5 +1,6 @@
 package peg.generator;
 
+import haxe.CallStack;
 import peg.php.*;
 
 using StringTools;
@@ -88,7 +89,7 @@ class Node {
 			}
 		}
 		if(node == null) {
-			node = new Node(ns, path[index], this);
+			node = new Node(null, path[index], this);
 		}
 		if(index + 1 == path.length) {
 			node.addNs(ns);

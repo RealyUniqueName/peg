@@ -1,5 +1,7 @@
 package peg.php;
 
+import haxe.CallStack;
+
 @:allow(peg.Parser)
 class PNamespace {
 	public final name:String;

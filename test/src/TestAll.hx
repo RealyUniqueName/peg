@@ -4,7 +4,13 @@ using sys.io.File;
 using StringTools;
 
 class TestAll {
+	static function command(cmd:String, args:Array<String>) {
+		Sys.println('Running command: $cmd ' + args.join(' '));
+		return Sys.command(cmd, args);
+	}
+
 	static public function main() {
+		Sys.println('Cwd: ' + Sys.getCwd());
 		var pegPhp = 'bin/php/index.php';
 		var phpDir = 'test/data/php';
 		var outDir = 'bin/generated';
@@ -14,7 +20,7 @@ class TestAll {
 			Sys.println('Use --diff to automatically show diff of expected/actual on failure');
 		}
 		Sys.println('Generating externs of the test data from $phpDir');
-		var exitCode = Sys.command('php', [pegPhp, '--php', phpDir, '--out', outDir]);
+		var exitCode = command('php', [pegPhp, '--php', phpDir, '--out', outDir]);
 		if(exitCode != 0) {
 			Sys.stderr().writeString('Failed to generate externs.\n');
 			Sys.exit(exitCode);
@@ -22,7 +28,9 @@ class TestAll {
 
 		Sys.println('Validating generated externs against expected result from $expectedDir');
 		var success = true;
+		var outFiles = findHxFiles(outDir);
 		for(relative => expectedPath in findHxFiles(expectedDir)) {
+			outFiles.remove(relative);
 			var expectedContent = expectedPath.getContent();
 			var actualPath = Path.join([outDir, relative]);
 			var actualContent = actualPath.getContent();
@@ -34,6 +42,11 @@ class TestAll {
 					Sys.command('git', ['diff', '--no-index', expectedPath, actualPath]);
 				}
 			}
+		}
+		for(relative => outPath in outFiles) {
+			success = false;
+			Sys.stderr().writeString('Unexpected file generated: $outPath\n');
+			Sys.stderr().flush();
 		}
 
 		if(!success) {

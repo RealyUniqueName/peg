@@ -1,11 +1,14 @@
 package peg.generator.writers;
 
+import peg.generator.HxImportTypePath;
 using StringTools;
 
 enum abstract TypeKind(String) to String {
 	var TKClass = 'class';
 	var TKInterface = 'interface';
 }
+
+typedef Import = {type:HxImportTypePath, alias:Null<String>, confirmedForExtern:Bool};
 
 class ModuleWriter extends SymbolWriter {
 
@@ -19,7 +22,7 @@ class ModuleWriter extends SymbolWriter {
 
 	var typeKind:TypeKind = TKClass;
 
-	final imports:Array<{type:String, alias:Null<String>, confirmedForExtern:Bool}> = [];
+	final imports:Array<Import> = [];
 	final implementsInterfaces:Array<String> = [];
 	final extendsTypes:Array<String> = [];
 
@@ -28,21 +31,23 @@ class ModuleWriter extends SymbolWriter {
 		this.pack = pack;
 	}
 
-	public function addImport(typePath:HxImportTypePath, alias:Null<String>) {
+	public function addImport(typePath:HxImportTypePath, alias:Null<String>, autoConfirm:Bool = false) {
 		for(i in 0...imports.length) {
 			if(imports[i].type == typePath && imports[i].alias == alias) {
 				return;
 			}
 		}
-		imports.push({type:typePath, alias:alias, confirmedForExtern:false});
+		imports.push({type:typePath, alias:alias, confirmedForExtern:autoConfirm});
 	}
 
 	public function confirmImport(name:String) {
 		for (item in imports) {
 			if(item.alias == name || (item.alias == null && item.type == name)) {
 				item.confirmedForExtern = true;
+				return;
 			}
 		}
+		addImport(name, null, true);
 	}
 
 	public function addExtends(typePath:HxTypePath) {

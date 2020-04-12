@@ -51,7 +51,7 @@ class Lexer {
 				try {
 					Json.parse(result.stdout);
 				} catch(e:Dynamic) {
-					throw new PegException('Failed to parse json: ' + result.stdout, Exception.wrapWithStack(e));
+					throw new PegException('Failed to parse json: ' + result.stdout, new haxe.ValueException(e));
 				}
 			}
 		}
