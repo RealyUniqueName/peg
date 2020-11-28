@@ -11,7 +11,7 @@ enum PType {
 	TObject;
 	TMixed;
 	TVoid;
-	TArray(item:PType);
+	TArray(index:PType, item:PType);
 	TClass(name:String);
 	TOr(types:ReadOnlyArray<PType>);
 }

@@ -213,7 +213,7 @@ class Parser {
 	function parseType(ctx:Context):PType {
 		var token = ctx.stream.next();
 		return switch token.type {
-			case T_ARRAY: TArray(TMixed);
+			case T_ARRAY: TArray(TMixed, TMixed);
 			case T_CALLABLE: TCallable;
 			case T_STRING | T_NS_SEPARATOR | T_NAME_FULLY_QUALIFIED | T_NAME_QUALIFIED | T_NAME_RELATIVE:
 				ctx.stream.back();
@@ -238,11 +238,11 @@ class Parser {
 			}
 			var bracketPos = type.lastIndexOf('[');
 			if(bracketPos > 0) {
-				types.push(TArray(parseTypeString(type.substr(0, bracketPos))));
+				types.push(TArray(TInt, parseTypeString(type.substr(0, bracketPos))));
 			} else {
 				types.push(switch(type) {
 					case 'null': TNull;
-					case 'array': TArray(TMixed);
+					case 'array': TArray(TMixed, TMixed);
 					case 'string': TString;
 					case 'int' | 'integer': TInt;
 					case 'float': TFloat;
@@ -275,12 +275,18 @@ class Parser {
 		return switch token.type {
 			case T_LEFT_SQUARE:
 				if(ctx.stream.next().type == T_RIGHT_SQUARE) {
-					TArray(TMixed);
+					TArray(TMixed, TMixed);
 				} else {
 					ctx.stream.back();
-					var itemType = parseTypeFromConstValue(ctx);
-					ctx.stream.skipBalancedTo(T_RIGHT_SQUARE);
-					TArray(itemType);
+					var type = parseTypeFromConstValue(ctx);
+					if(ctx.stream.next().type == T_DOUBLE_ARROW) {
+						var itemType = parseTypeFromConstValue(ctx);
+						TArray(type, itemType);
+					} else {
+						ctx.stream.back();
+						ctx.stream.skipBalancedTo(T_RIGHT_SQUARE);
+						TArray(TInt, type);
+					}
 				}
 			case T_LEFT_PARENTHESIS:
 				ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
@@ -288,12 +294,18 @@ class Parser {
 			case T_ARRAY:
 				ctx.stream.expect(T_LEFT_PARENTHESIS);
 				if(ctx.stream.next().type == T_RIGHT_PARENTHESIS) {
-					TArray(TMixed);
+					TArray(TMixed, TMixed);
 				} else {
 					ctx.stream.back();
-					var itemType = parseTypeFromConstValue(ctx);
-					ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
-					TArray(itemType);
+					var type = parseTypeFromConstValue(ctx);
+					if(ctx.stream.next().type == T_DOUBLE_ARROW) {
+						var itemType = parseTypeFromConstValue(ctx);
+						TArray(type, itemType);
+					} else {
+						ctx.stream.back();
+						ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
+						TArray(TInt, type);
+					}
 				}
 			case T_LNUMBER:
 				skipToSeparator();
@@ -330,7 +342,7 @@ class Parser {
 			switch token.type {
 				case T_INTERFACE: cls.isInterface = true;
 				case T_TRAIT: cls.isTrait = true;
-				case T_DOC_COMMENT: cls.doc = token.value;
+				case T_DOC_COMMENT: cls.doc = DocBlock.parse(token.value).text;
 				case T_FINAL: cls.isFinal = true;
 				case T_ABSTRACT: cls.isAbstract = true;
 				case _: throw new UnexpectedTokenException(token);
@@ -414,6 +426,7 @@ class Parser {
 
 		if(fn.doc.length > 0) {
 			var doc = DocBlock.parse(fn.doc, parseTypeString);
+			fn.doc = doc.text;
 			switch doc.returnType {
 				case null:
 				case type: fn.returnType = type;
@@ -494,7 +507,7 @@ class Parser {
 					var c = new PConst(token.value);
 					for(token in storedTokens.copy()) {
 						switch token.type {
-							case T_DOC_COMMENT: c.doc = token.value;
+							case T_DOC_COMMENT: c.doc = DocBlock.parse(token.value).text;
 							case T_PUBLIC: c.visibility = VPublic;
 							case T_PROTECTED: c.visibility = VProtected;
 							case T_PRIVATE: c.visibility = VPrivate;
@@ -554,6 +567,7 @@ class Parser {
 
 		if(v.doc.length > 0) {
 			var doc = DocBlock.parse(v.doc, parseTypeString);
+			v.doc = doc.text;
 			switch doc.varType {
 				case null:
 				case type: v.type = type;

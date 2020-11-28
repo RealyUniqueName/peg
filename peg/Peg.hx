@@ -34,7 +34,7 @@ class Peg {
 		}
 
 		var genCount = 0;
-		var gen = new Generator(
+		var gen = new ExprGenerator(
 			allNamespaces,
 			outDir,
 			()-> Sys.print('\rWriting Haxe externs: ${++genCount}'),

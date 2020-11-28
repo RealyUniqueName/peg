@@ -1,10 +1,8 @@
 package php;
-
 /**
- * Class comment
- */
-@:native("\\RootClass")
-extern class RootClass {
+	Class comment
+**/
+@:native("\\RootClass") extern class RootClass {
 	/**
 	 * Const comment
 	 */

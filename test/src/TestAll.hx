@@ -1,3 +1,4 @@
+using Safety;
 using haxe.io.Path;
 using sys.FileSystem;
 using sys.io.File;
@@ -65,11 +66,11 @@ class TestAll {
 	static function findHxFiles(path:String, ?root:String, ?result:Map<String,String>):Map<String,String> {
 		var result = switch result {
 			case null: new Map();
-			case r: r;
+			case r: r.sure();
 		}
 		var root = switch root {
 			case null: path.fullPath().addTrailingSlash();
-			case r: r;
+			case r: r.sure();
 		}
 
 		path = path.fullPath();
