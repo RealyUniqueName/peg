@@ -29,6 +29,15 @@ class TestAll {
 
 		Sys.println('Validating generated externs against expected result from $expectedDir');
 		var success = true;
+		function fail(expectedPath:String, actualPath:String, relative:String) {
+			success = false;
+			Sys.stderr().writeString('Generated content does not match expected content for file $relative\n');
+			Sys.stderr().flush();
+			if(diffOnFail) {
+				Sys.command('git', ['diff', '--no-index', expectedPath, actualPath]);
+			}
+		}
+
 		var outFiles = findHxFiles(outDir);
 		for(relative => expectedPath in findHxFiles(expectedDir)) {
 			outFiles.remove(relative);
@@ -36,11 +45,18 @@ class TestAll {
 			var actualPath = Path.join([outDir, relative]);
 			var actualContent = actualPath.getContent();
 			if(expectedContent != actualContent) {
-				success = false;
-				Sys.stderr().writeString('Generated content does not match expected content for file $relative\n');
-				Sys.stderr().flush();
-				if(diffOnFail) {
-					Sys.command('git', ['diff', '--no-index', expectedPath, actualPath]);
+				var expectedLines = expectedContent.split('\n');
+				var actualLines = actualContent.split('\n');
+				if(expectedLines.length != actualLines.length) {
+					fail(expectedPath, actualPath, relative);
+				} else {
+					for(i => actual in actualLines) {
+						var expected = expectedLines[i];
+						if(actual != expected && (actual + expected).trim() != '') {
+							fail(expectedPath, actualPath, relative);
+							break;
+						}
+					}
 				}
 			}
 		}

@@ -82,6 +82,10 @@ class Tools {
 		}
 	}
 
+	public static function toIdent(s:String):String {
+		return s.charAt(0) == '$' ? s.substr(1) : s;
+	}
+
 	public static function phpNamespace2HxPack(php:Array<String>):Array<String> {
 		return php.length == 0 ? ['php'] : php.map(s -> s.toLowerCase().toHx());
 	}
@@ -120,6 +124,18 @@ class PClassTools {
 		var ns = phpNamespace.join('\\');
 		var superClass = cls.parent.let(Tools.phpTypeToTypePath);
 		var interfaces = cls.interfaces.map(Tools.phpTypeToTypePath);
+
+		var fields = [];
+		for(c in cls.constants)
+			if(c.visibility != VPrivate)
+				fields.push(c.toField());
+		for(v in cls.vars)
+			if(v.visibility != VPrivate)
+				fields.push(v.toField());
+		for(f in cls.functions)
+			if(f.visibility != VPrivate)
+				fields.push(f.toField());
+
 		return {
 			pack: hxPack,
 			name: cls.name.charAt(0).toUpperCase() + cls.name.substr(1),
@@ -129,7 +145,7 @@ class PClassTools {
 			// ?params:Array<TypeParamDecl>,
 			isExtern: true,
 			kind: TDClass(superClass, interfaces, cls.isInterface, cls.isFinal, cls.isAbstract),
-			fields: cls.constants.map(PConstTools.toField)
+			fields: fields
 		}
 	}
 }
@@ -218,13 +234,71 @@ class VisibilityTools {
 
 class PConstTools {
 	public static function toField(c:PConst):Field {
+		var meta = [{ name: ':phpClasConst', pos: nullPos }];
+		var rawName = c.name.toIdent();
+		var name = rawName.toHx();
+		if(name != rawName)
+			meta.push(rawName.toNativeMeta());
+
 		return {
-			name: c.name.toHx(),
+			name: name,
 			doc: c.doc == '' ? null : c.doc,
 			access: [AFinal, c.visibility.toAccess()],
 			kind: FVar(c.type.toComplexType()),
 			pos: nullPos,
-			meta: [{ name: ':phpClasConst', pos: nullPos }],
+			meta: meta,
+		}
+	}
+}
+
+class PVarTools {
+	public static function toField(v:PVar):Field {
+		var access = [v.visibility.toAccess()];
+		if(v.isStatic) access.push(AStatic);
+		var rawName = v.name.toIdent();
+		var name = rawName.toHx();
+
+		return {
+			name: name,
+			doc: v.doc == '' ? null : v.doc,
+			access: access,
+			kind: FVar(v.type.toComplexType()),
+			pos: nullPos,
+			meta: name == rawName ? null : [rawName.toNativeMeta()],
+		}
+	}
+
+	public static function toFunctionArg(v:PVar):FunctionArg {
+		return {
+			name: v.name.toIdent().toHx(),
+			opt: v.hasValue,
+			type: v.type.toComplexType()
+		}
+	}
+
+}
+
+class PFunctionTools {
+	public static function toField(f:PFunction):Field {
+		var access = [f.visibility.toAccess()];
+		if(f.isStatic) access.push(AStatic);
+		if(f.isFinal) access.push(AFinal);
+		if(f.isAbstract) access.push(AAbstract);
+
+		var rawName = f.name.toIdent();
+		var name = rawName.toHx();
+
+		return {
+			name: name,
+			doc: f.doc == '' ? null : f.doc,
+			access: access,
+			kind: FFun({
+				args: [for(arg in f.args) arg.toFunctionArg()],
+				ret: f.returnType.toComplexType(),
+				//?params:Array<TypeParamDecl>,
+			}),
+			pos: nullPos,
+			meta: name == rawName ? null : [rawName.toNativeMeta()],
 		}
 	}
 }
