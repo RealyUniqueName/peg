@@ -106,7 +106,7 @@ class Parser {
 		var uses = [];
 		for (token in ctx.stream) {
 			switch token.type {
-				case T_STRING | T_NS_SEPARATOR:
+				case T_STRING | T_NS_SEPARATOR | T_NAME_QUALIFIED | T_NAME_FULLY_QUALIFIED | T_NAME_RELATIVE:
 					ctx.stream.back();
 					var type = parseTypePath(ctx);
 					var alias = parseAlias();
@@ -198,6 +198,8 @@ class Parser {
 		var name = '';
 		for(token in ctx.stream) {
 			switch token.type {
+				case T_NAME_QUALIFIED | T_NAME_FULLY_QUALIFIED | T_NAME_RELATIVE:
+					name = token.value;
 				case T_STRING | T_NS_SEPARATOR:
 					name += token.value;
 				case _:
@@ -213,7 +215,7 @@ class Parser {
 		return switch token.type {
 			case T_ARRAY: TArray(TMixed);
 			case T_CALLABLE: TCallable;
-			case T_STRING | T_NS_SEPARATOR:
+			case T_STRING | T_NS_SEPARATOR | T_NAME_FULLY_QUALIFIED | T_NAME_QUALIFIED | T_NAME_RELATIVE:
 				ctx.stream.back();
 				parseTypeString(parseTypePath(ctx));
 			case _:

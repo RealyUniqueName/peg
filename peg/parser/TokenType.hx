@@ -11,6 +11,12 @@ enum abstract TokenType(String) from String {
 	var T_LEFT_SQUARE = '[';
 	var T_RIGHT_SQUARE = ']';
 
+	/** Foo\Bar */
+	var T_NAME_QUALIFIED;
+	/** \Foo */
+	var T_NAME_FULLY_QUALIFIED;
+	/** namespace\Foo */
+	var T_NAME_RELATIVE;
 	/** abstract - Class Abstraction */
 	var T_ABSTRACT;
 	/** &= - assignment operators */
