@@ -269,7 +269,7 @@ class Parser {
 	static public function parseTypeFromConstValue(ctx:Context):PType {
 		var token = ctx.stream.next();
 		inline function skipToSeparator() {
-			ctx.stream.skipTo([T_COMMA, T_SEMICOLON, T_RIGHT_PARENTHESIS]);
+			ctx.stream.skipTo([T_COMMA, T_SEMICOLON, T_RIGHT_PARENTHESIS, T_DOUBLE_ARROW]);
 			ctx.stream.back();
 		}
 		return switch token.type {
