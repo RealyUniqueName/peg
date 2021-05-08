@@ -281,6 +281,7 @@ class Parser {
 					var type = parseTypeFromConstValue(ctx);
 					if(ctx.stream.next().type == T_DOUBLE_ARROW) {
 						var itemType = parseTypeFromConstValue(ctx);
+						ctx.stream.skipBalancedTo(T_RIGHT_SQUARE);
 						TArray(type, itemType);
 					} else {
 						ctx.stream.back();
@@ -300,6 +301,7 @@ class Parser {
 					var type = parseTypeFromConstValue(ctx);
 					if(ctx.stream.next().type == T_DOUBLE_ARROW) {
 						var itemType = parseTypeFromConstValue(ctx);
+						ctx.stream.skipBalancedTo(T_RIGHT_PARENTHESIS);
 						TArray(type, itemType);
 					} else {
 						ctx.stream.back();
